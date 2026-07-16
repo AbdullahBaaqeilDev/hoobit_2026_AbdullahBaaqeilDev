@@ -1,0 +1,18 @@
+you are the only survivor (from the AI vs Human war) in a space craft that is directed to the sun
+but there is an AI computer that survived with u
+unfortunately or fortunately he need to change batteries to work with only one text on the screen "SOMETHING THAT HINTS TO THE BATTERIES"
+after you fix him your mission is to persuade him to teach u how to solve this very hard puzzle that will make you land safely back to earth
+you can make a joke at the end about that it got you to mars instead of earth
+the space craft should be only two rooms to make it easier on you
+the player can interact with object by clicking on them
+after the AI computer has been awaken you can make the ai say some funny or sarcasm thing about what you are interacting with
+the art is pixel art no need for fancy art
+there is a timer of the time remaining before the player hit the sun
+"OMG my i used AI to pass my exams i don't know how to make the ship work"
+
+{
+"text": "",
+"anger": 0.2,
+"convinced_progress": 0.3,
+"convinced_progress_to_help_human": True
+}
