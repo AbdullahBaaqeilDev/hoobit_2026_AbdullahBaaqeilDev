@@ -10,6 +10,10 @@ class Timer:
         self.ran = False
         self.start_time = time.time()
 
+    def start(self):
+        self.disabled = False
+        self.start_time = time.time()
+
     def elapsed_time(self):
         return time.time() - self.start_time
     
@@ -17,6 +21,10 @@ class Timer:
         return self.delay_s - (time.time() - self.start_time) 
 
     def update(self):
+        if self.disabled:
+            self.start_time = time.time()
+            return
+        
         if time.time() - self.start_time > self.delay_s and self.callback:
             self.callback()
             self.ran = True

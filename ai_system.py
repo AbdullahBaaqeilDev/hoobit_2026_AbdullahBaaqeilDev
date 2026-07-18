@@ -4,7 +4,7 @@ import json
 from dotenv import load_dotenv
 from groq import AsyncGroq
 
-# Load environment variables
+
 load_dotenv()
 
 ai_data = {
@@ -106,8 +106,7 @@ Example Output:
         )
         
         raw_json_string = completion.choices[0].message.content
-        
-        # Parse the JSON string safely into a native Python dictionary
+
         ai_data = json.loads(raw_json_string)
         
     except Exception as e:

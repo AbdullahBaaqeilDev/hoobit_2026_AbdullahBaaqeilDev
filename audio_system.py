@@ -34,7 +34,7 @@ class AudioSystem:
                 pygame.mixer.music.stop()
                 pygame.mixer.music.load(song_path)
                 pygame.mixer.music.play(-1)
-                print(f"Now playing song: {song_name}")
+                # print(f"Now playing song: {song_name}")
             except Exception as e:
                 print(f"Error playing song {song_name}: {e}")
         else:

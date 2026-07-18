@@ -18,7 +18,7 @@ class Level:
         self.timers = {
             "sun_crash": Timer(self.sun_crash, 60),
             "footsteps_cooldown": Timer(self.check_footsteps_cooldown, 0.5, True)
-        }
+        } ; self.timers["sun_crash"].disabled = True
         self.start_time = 0
         self.player = Player()
         self.audio_system = None
@@ -61,7 +61,7 @@ class Level:
         self.start_time = time.time()
         self.audio_system.change_song_to("JDSherbert - Ambiences Music Pack - Frost Mountain Aura")
 
-    def create_timer(self, name, callback, delay_s, periodic = False):
+    def create_timer(self, name, callback, delay_s = 1, periodic = False):
         self.timers[name] = Timer(callback, delay_s, periodic)
 
     def del_timer(self, name):
@@ -87,16 +87,31 @@ class Level:
     def sun_crash(self):
         print("crashed the sun")
 
-    def create_message(self, text, age = "auto", name = None):
+    def create_message(self, text, age = "auto", name = None, delay_s = 0):
         while not name or name in self.messages.keys():
             name = str(randrange(0, 1_000_000_000))
 
-        self.messages[name] = Message(
-            text,
-            pygame.display.get_window_size()[0],
-            age if age != "auto" else text.count(" ") / 4,
-            center_image_path = "assets/images/gui/message_center.png",
-        )
+        def message_creation_callback():
+            self.messages[name] = Message(
+                text,
+                pygame.display.get_window_size()[0],
+                age if age != "auto" else text.count(" ") / 3.5,
+                center_image_path = "assets/images/gui/message_center.png",
+            )
+
+        if delay_s:
+            self.create_timer(
+                name,
+                message_creation_callback,
+                delay_s
+            )
+        else:
+            self.messages[name] = Message(
+                text,
+                pygame.display.get_window_size()[0],
+                age if age != "auto" else text.count(" ") / 3.5,
+                center_image_path = "assets/images/gui/message_center.png",
+            )
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_TAB:
@@ -211,29 +226,33 @@ class Level:
                     self.status["trash_can_open"] = True
                     self.inventory.append("heat_chamber")
                     self.inventory.append("dirty_note")
+                    delay_s = -1
+                    start_dialogs = [
+                        "You got A [red]'Heat Chamber'[white]",
+                        "And a dirty note saying '[156,230,78]4[108,230,108]1[237,21,86]3[104,29,209]2'",
+                    ]
+                    for dialog in start_dialogs:
+                        self.create_message(dialog, delay_s = delay_s)
+                        delay_s += dialog.count(" ") / 4 + 1
                 else:
-                    # TODO: make a messsage show up
-                    print("empty")
+                    self.create_message("the dirty note said '[156,230,78]4[108,230,108]1[237,21,86]3[104,29,209]2[white]' forgot ? hmph what a human")
             case "engine_fire_higher_action":
-                # TODO: make a messsage show up
-                print("How did your hands reah there?!")
+                self.create_message("How did your hands reah there?!")
             case "engine_fire_lower_action":
-                # TODO: make the ai make a comment store that comment and replay it later
-                print("Ouch!! it's hot")
+                self.create_message("Ouch!! it's hot")
             case "back_storage_action":
-                # TODO: make a puzzle appear. and add if solved to the condition
                 if not self.status["back_storage_open"]:
                     self.status["back_storage_open"] = True
                     self.inventory.append("wires")
+                    self.create_message("You got A [237,39,21]'Pack of Wires'  ")
                 else:
-                    # TODO: make a messsage show up
-                    print("empty")
+                    self.create_message("...")
             case "electricity_panal_action":
                 # TODO: make the ai make a comment store that comment and replay it later
                 pass
             case "vent_action":
                 # TODO: make the ai make a comment store that comment and replay it later
-                print("Good thing the ventilation system didn't break")
+                self.create_message("Good thing the ventilation system didn't break")
             case "higher_engine_action": 
                 if "wires" in self.inventory and not self.status["higher_engine_fixed"]:
                     self.manager.open_puzzle("WIRES_2")
@@ -300,8 +319,8 @@ class Level:
             timer.update()
             if timer.ran and not timer.periodic:
                 expired_timers.append(name)
-        for name in expired_timers:
-            self.del_timer(name)
+        for ex_name in expired_timers:
+            self.del_timer(ex_name)
 
     def check_footsteps_cooldown(self):
         if "walk" in self.player.status:

@@ -29,12 +29,11 @@ class GameManager:
         self.end_ui = EndUI(self.restart, self.quit_game)
         self.wire_puzzle_1 = WirePuzzleUI(self.audio_system, 4, self.on_wires_puzzle_1_solve, self.close_puzzle)
         self.wire_puzzle_2 = WirePuzzleUI(self.audio_system, 8, self.on_wires_puzzle_2_solve, self.close_puzzle)
-        self.vault_puzzle = VaultPuzzleUI(self.audio_system, ("V", "II", "III", "IV"), self.on_vault_puzzle_solve, self.close_puzzle)
+        self.vault_puzzle = VaultPuzzleUI(self.audio_system, ("II", "I", "V", "IV"), self.on_vault_puzzle_solve, self.close_puzzle)
         self.storage_puzzle = StoragePuzzleUI(self.audio_system, ("IV", "I", "III", "II"), self.on_storage_puzzle_solve, self.close_puzzle)
         self.ai_chat_ui = AiChatUI(self.on_send, self.close_ai_chat)
         
         self.audio_system.change_song_to("25. Dark Factory")
-        # self.current_state = "AI_CHAT"
 
         # Track what the AI said last so we know when a NEW response arrives
         self.last_known_text = ai_system.ai_data["text"]
@@ -43,7 +42,30 @@ class GameManager:
     def start_game(self):
         self.current_state = "GAMEPLAY"
         self.level.start()
-        # TODO: make the dialog about the game and start the timer after that with alarm sfx
+        
+        delay_s = -1
+        start_dialogs = [
+            "You are the [red]last human[white] ",
+            "You survived the [red]AI vs Human War[white]",
+            "Your mission is to get back to earth",
+            "And if you don't convince the sleeping ai to help you...",
+            "[red]You will be melting in the [yellow]sun[white]    ",
+            "btw it's the year [104,29,209]2[108,230,108]1[17,154,245]5[156,230,78]4[white]            ",
+            "5:00  ",
+            "4:59  "
+        ]
+        for dialog in start_dialogs:
+            self.level.create_message(dialog, delay_s = delay_s)
+            # delay_s += dialog.count(" ") / 4 + 1
+        self.level.create_timer(
+            "sun_crash",
+            self.start_sun_crash_timer,
+            delay_s=delay_s - 3
+        )
+
+    def start_sun_crash_timer(self):
+        self.level.timers["sun_crash"].start()
+        self.audio_system.play_sfx("classic_alarm")
     
     def restart(self):
         pass
@@ -86,11 +108,13 @@ class GameManager:
         self.level.inventory.append("batteries")
         self.level.status["vault_open"] = True
         self.current_state = "GAMEPLAY"
+        self.level.create_message("You got [21,226,237]'Batteries'      ")
 
     def on_storage_puzzle_solve(self):
         self.level.inventory.append("wires")
         self.level.status["front_storage_open"] = True
         self.current_state = "GAMEPLAY"
+        self.level.create_message("You got A [237,39,21]'Pack of Wires'      ")
     
     def on_send(self, player_message):
         return ai_system.talk_to_ai(player_message)
@@ -138,17 +162,16 @@ class GameManager:
         
         if ai_system.is_thinking and not self.waiting_for_ai:
             self.waiting_for_ai = True
-            # Optional: Add a temporary thinking indicator to the chat!
             self.ai_chat_ui.add_message("AI", "Thinking...")
 
         if self.waiting_for_ai and not ai_system.is_thinking:
             self.waiting_for_ai = False
             
-            # Remove the temporary "Thinking..." string if you added one
+            # Remove the temporary "Thinking..." string
             if self.ai_chat_ui.messages[-1]["text"] == "Thinking...":
                 self.ai_chat_ui.messages.pop()
             
-            # Push the real Llama 3.1 response directly onto the chat display!
+            # Push the real Llama 3.1 response directly onto the chat display
             new_reply = ai_system.ai_data["text"]
             self.ai_chat_ui.add_message("AI", new_reply)
 

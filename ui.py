@@ -31,7 +31,7 @@ class Button:
     def __init__(self, normal_image_path, x, y, action = None, fallback_size = (200, 60)):
         self.x = x
         self.y = y
-        self.action = action  # Python function to call when clicked
+        self.action = action
         
         self.image_normal = self.load_button_image(normal_image_path, fallback_size, (70, 130, 180))
         hover_image_path = normal_image_path.replace("_normal", "_hover")
@@ -84,18 +84,17 @@ class Entry:
         self.is_active = False
         self.rect = pygame.Rect(x - width // 2, y - height // 2, width, height)
         
-        # Font setup
         try:
             self.font = pygame.font.SysFont("consolas", font_size)
         except Exception:
             self.font = pygame.font.Font(None, font_size + 4)
             
-        # Cursor blink animation variables
+        # Cursor blink
         self.cursor_visible = True
         self.cursor_timer = 0
 
     def handle_event(self, event):
-        # 1. Check for mouse click to toggle selection focus
+        # Check for mouse click to toggle selection focus
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
                 self.is_active = True
@@ -104,7 +103,7 @@ class Entry:
             else:
                 self.is_active = False
 
-        # 2. Capture keyboard inputs only if box is selected/active
+        # Capture keyboard inputs only if box is selected/active
         if self.is_active:
             if event.type == pygame.TEXTINPUT:
                 self.text += event.text
@@ -114,7 +113,7 @@ class Entry:
                     self.text = self.text[:-1]
 
     def update(self):
-        # Blink cursor every 30 frames (~0.5 seconds at 60 FPS)
+        # Blink cursor every 30 frames (~0.5 seconds)
         if self.is_active:
             self.cursor_timer += 1
             if self.cursor_timer >= 30:
@@ -130,15 +129,15 @@ class Entry:
         self.text = ""
 
     def draw(self, screen):
-        # 1. Background box (Darker sci-fi slate)
+        # Background box
         bg_color = (20, 24, 30) if self.is_active else (15, 18, 22)
         pygame.draw.rect(screen, bg_color, self.rect, border_radius=6)
         
-        # 2. Border outline (Glows brighter when typing)
+        # Border outline
         border_color = (100, 180, 220) if self.is_active else (50, 55, 65)
         pygame.draw.rect(screen, border_color, self.rect, width=2, border_radius=6)
 
-        # 3. Render Text inside box
+        # Render Text inside box
         if self.text == "":
             # Render empty placeholder hint text
             text_surf = self.font.render(self.placeholder, True, (80, 85, 95))
@@ -149,7 +148,6 @@ class Entry:
         text_rect = text_surf.get_rect(midleft=(self.rect.left + 12, self.rect.centery))
         screen.blit(text_surf, text_rect)
 
-        # 4. Draw blinking cursor line
         if self.cursor_visible:
             cursor_x = text_rect.right + 2 if self.text != "" else self.rect.left + 12
             pygame.draw.line(
@@ -191,9 +189,9 @@ class Message:
         
         # Easing Time & State Management
         self.is_animating = False
-        self.animation_direction = "down"  # Tracks "down" or "up"
+        self.animation_direction = "down"
         self.start_time = 0.0
-        self.duration = 0.5  # Total time for the animation in seconds
+        self.duration = 0.5   # Total time for the animation in seconds
         self.current_t = 0.0  # Normalized progress tracking variable (0.0 to 1.0)
 
         self.age = age
@@ -202,7 +200,6 @@ class Message:
         # Pre-render text surface
         self.text_surface = self.render_colored_text(self.text)
         
-        # Initial surface creation
         self.surface = pygame.Surface((self.current_width, self.height), pygame.SRCALPHA)
         self.rect = self.surface.get_rect(topleft=(padding, self.current_y))
         self.update_visuals()
@@ -276,8 +273,7 @@ class Message:
             self.current_t = min(1.0, elapsed / self.duration)
         else:
             self.current_t = max(0.0, 1.0 - (elapsed / self.duration))
-        
-        # Cubic Out Formula: f(t) = 1 - (1 - t)^3
+
         cubic_out = 1 - (1 - self.current_t) ** 3
         
         # Interpolate variables using the cubic progress multiplier
@@ -334,15 +330,15 @@ class Message:
         self.update_visuals()
 
     def update(self):
-            # Run the active animation frame calculations
-            self.animate()
-            
-            # Check if the message has expired (if age tracking is enabled via passing anything except -1)
-            if self.age != -1 and not hasattr(self, 'auto_reversed'):
-                # Total lifespan equals the arrival animation time + the requested visible age
-                if time.time() - self.birth_time >= (self.duration + self.age):
-                    self.auto_reversed = True
-                    self.reverse_transition() # Naturally begin shrinking/retreating upwards
+        # Run the active animation frame calculations
+        self.animate()
+        
+        # Check if the message has expired (if age tracking is enabled via passing anything except -1)
+        if self.age != -1 and not hasattr(self, 'auto_reversed'):
+            # Total lifespan equals the arrival animation time + the requested visible age
+            if time.time() - self.birth_time >= (self.duration + self.age):
+                self.auto_reversed = True
+                self.reverse_transition() # Naturally begin shrinking/retreating upwards
 
     def draw(self, screen):
         # Simply check if the banner has visual dimensions and is within screen bounds
@@ -359,17 +355,20 @@ class MainMenuUI:
             x=320, y=150, action=on_play
         )
 
-        self.settings_button = Button(
-            "assets/images/gui/settings_normal.png",
-            x=320, y=225, action=on_settings
-        )
+        # self.settings_button = Button(
+        #     "assets/images/gui/settings_normal.png",
+        #     x=320, y=225, action=on_settings
+        # )
         
         self.quit_button = Button(
             "assets/images/gui/quit_normal.png",
-            x=320, y=300, action=on_quit
+            x=320, y=225, action=on_quit
         )
         
-        self.buttons = [self.play_button, self.settings_button, self.quit_button]
+        self.buttons = [
+            self.play_button, 
+            # self.settings_button, 
+            self.quit_button]
 
     def handle_event(self, event):
         for button in self.buttons:
@@ -475,7 +474,7 @@ class WirePuzzleUI:
         """Generates bright colors that are guaranteed to be distinct using a safe loop."""
         colors = []
         attempts = 0
-        max_attempts = 200  # Safety break to prevent infinite looping
+        max_attempts = 200
         
         current_C = min_distance
 
@@ -483,7 +482,7 @@ class WirePuzzleUI:
             new_color = self._make_single_bright_color()
             attempts += 1
             
-            # Check if this new color is far enough from all colors already in our list
+            # Check if this new color is far enough from all colors already in list
             is_distinct = True
             for existing_color in colors:
                 r_diff = new_color[0] - existing_color[0]
@@ -493,12 +492,12 @@ class WirePuzzleUI:
                 
                 if distance < current_C:
                     is_distinct = False
-                    break  # Too close, reject it
+                    break
             
             if is_distinct:
                 colors.append(new_color)
                 
-            # Loop protection: If we are struggling to find perfect colors after 100 tries,
+            # Loop protection: If struggling to find perfect colors after 100 tries,
             # slightly lower the strictness threshold C so the game doesn't hang.
             if attempts > 100 and current_C > 50:
                 current_C -= 5
@@ -519,7 +518,7 @@ class WirePuzzleUI:
         available_height = self.panel_height
         step = available_height // max(1, (self.num_wires - 1)) if self.num_wires > 1 else 0
         
-        # Spawning wire attachments cleanly inside the inner borders of the wider strips
+        # Spawning wire attachments inside the inner borders
         for i in range(self.num_wires):
             x = self.left_panel_pos[0]
             y = self.left_panel_pos[1] + (i * step)
@@ -628,24 +627,24 @@ class WirePuzzleUI:
             pygame.draw.rect(screen, (50, 55, 65), (self.box_x, self.box_y, self.box_width, self.box_height), width=2, border_radius=12)
 
 
-        # Draw Sockets
+        # Sockets
         for node in self.left_nodes + self.right_nodes:
-            slot_x = node["pos"][0] - (self.slot_size[0] // 2)
-            slot_y = node["pos"][1] - (self.slot_size[1] // 2)
+            # slot_x = node["pos"][0] - (self.slot_size[0] // 2)
+            # slot_y = node["pos"][1] - (self.slot_size[1] // 2)
             
             pygame.draw.circle(screen, (20, 22, 26), node["pos"], self.slot_size[0] // 2)
             pygame.draw.circle(screen, (70, 75, 85), node["pos"], self.slot_size[0] // 2, width=1)
 
-        # Draw Connected Lines
+        # Connected Lines
         for node in self.left_nodes:
             if node["connected"] and node["target_pos"]:
                 self.draw_wire(screen, node["pos"], node["target_pos"], node["color"])
 
-        # Draw Active Dragging Line
+        # Active Dragging Line
         if self.active_wire:
             self.draw_wire(screen, self.active_wire["pos"], self.mouse_pos, self.active_wire["color"])
         
-        # Draw Side Metal Strips
+        # Side Metal Strips
         if self.left_metal_img and self.right_metal_img:
             screen.blit(self.left_metal_img, (0, 0))
             screen.blit(self.right_metal_img, self.right_metal_img.get_rect(topright = (screen.get_width(), 0)))
@@ -653,7 +652,7 @@ class WirePuzzleUI:
             pygame.draw.rect(screen, (45, 48, 54), (*self.left_panel_pos, self.panel_width, self.panel_height), border_radius=4)
             pygame.draw.rect(screen, (45, 48, 54), (*self.right_panel_pos, self.panel_width, self.panel_height), border_radius=4)
 
-        # Draw Wire Pin Headers
+        # Wire Pin Headers
         for node in self.left_nodes:
             pygame.draw.circle(screen, node["color"], node["pos"], self.node_radius)
         for node in self.right_nodes:
@@ -675,7 +674,7 @@ class VaultPuzzleUI:
         self.box_width = 260
         self.box_height = 240
         
-        # Center dynamically on screen
+        # Center
         screen_size = pygame.display.get_surface().get_size() if pygame.display.get_surface() else (800, 600)
         self.box_x = 140
         self.box_y = 60
@@ -1001,12 +1000,12 @@ class AiChatUI:
         self.on_close = on_close
         self.is_ai_active = False
         
-        # 1. Chat History Storage
+        # Chat History Storage
         self.messages = [
             {"sender": "AI", "text": "Press ENTER to begin communication..."}
         ]
         
-        # 2. Screen boundaries setup
+        # Screen boundaries setup
         screen_size = pygame.display.get_surface().get_size() if pygame.display.get_surface() else (800, 600)
         scr_w, scr_h = screen_size[0], screen_size[1]
         
@@ -1017,7 +1016,7 @@ class AiChatUI:
         entry_center_x = (scr_w - 120) // 2
         button_center_x = scr_w - 70
         
-        # 3. Instantiate Sibling UI Components
+        # Instantiate Sibling UI Components
         self.input_entry = Entry(
             x=entry_center_x, 
             y=panel_y, 
@@ -1033,7 +1032,7 @@ class AiChatUI:
             action=self.submit_message
         )
         
-        # 4. Chat History Display Box Dimensions
+        # Chat History Display Box Dimensions
         self.history_height = 220 # Slightly taller to give space for wrapped sentences
         self.history_rect = pygame.Rect(
             20, 
@@ -1104,13 +1103,13 @@ class AiChatUI:
         return lines
 
     def draw(self, screen):
-        # 1. DRAW CHAT HISTORY PANEL BACKING
+        # DRAW CHAT HISTORY PANEL BACKING
         history_surface = pygame.Surface((self.history_rect.width, self.history_rect.height), pygame.SRCALPHA)
         history_surface.fill((10, 14, 20, 210)) 
         screen.blit(history_surface, self.history_rect.topleft)
         pygame.draw.rect(screen, (60, 70, 85), self.history_rect, width=2, border_radius=8)
         
-        # 2. PROCESS AND WRAP ALL TEXT
+        # PROCESS AND WRAP ALL TEXT
         # We need to turn our history into a clean list of ready-to-draw lines
         render_queue = []
         padding_margin = 30
@@ -1126,7 +1125,7 @@ class AiChatUI:
             for line in wrapped_lines:
                 render_queue.append({"text": line, "color": color})
 
-        # 3. RENDER ONLY THE MOST RECENT WRAPPED LINES FROM THE BOTTOM UP
+        # RENDER ONLY THE MOST RECENT WRAPPED LINES FROM THE BOTTOM UP
         line_height = 24
         # Calculate exactly how many items we can display inside our box height
         max_lines_visible = (self.history_rect.height - 20) // line_height
@@ -1139,7 +1138,7 @@ class AiChatUI:
             text_surf = self.chat_font.render(line_data["text"], True, line_data["color"])
             screen.blit(text_surf, (self.history_rect.left + 15, start_y + (idx * line_height)))
 
-        # 4. DRAW BOTTOM INPUT TRAY
+        # DRAW BOTTOM INPUT TRAY
         tray_rect = pygame.Rect(0, screen.get_height() - 70, screen.get_width(), 70)
         tray_surface = pygame.Surface((tray_rect.width, tray_rect.height), pygame.SRCALPHA)
         tray_surface.fill((8, 10, 15, 230))
