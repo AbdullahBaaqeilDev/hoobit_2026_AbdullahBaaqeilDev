@@ -16,7 +16,7 @@ ai_data = {
 is_thinking = False
 
 _api_key = os.getenv("GROQ_API_KEY", "")
-_client = AsyncGroq(api_key="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")
+_client = AsyncGroq(api_key=_api_key)
 
 
 async def _fetch_groq_data(prompt: str):
