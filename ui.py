@@ -627,10 +627,10 @@ class WirePuzzleUI:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.on_close()
 
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_l:
-            self.is_solved = True
-            if self.on_solve:
-                self.on_solve()
+        # if event.type == pygame.KEYDOWN and event.key == pygame.K_l:
+        #     self.is_solved = True
+        #     if self.on_solve:
+        #         self.on_solve()
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mouse_pos = pygame.mouse.get_pos()
@@ -897,11 +897,11 @@ class VaultPuzzleUI:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.on_close()
 
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_l:
-            self.is_solved = True
-            if self.on_solve:
-                self.on_solve()
-            self.audio_system.play_sfx(f"vault_success")
+        # if event.type == pygame.KEYDOWN and event.key == pygame.K_l:
+        #     self.is_solved = True
+        #     if self.on_solve:
+        #         self.on_solve()
+        #     self.audio_system.play_sfx(f"vault_success")
 
         # Pass events directly to your Button instances
         for btn in self.buttons:
@@ -1080,11 +1080,11 @@ class StoragePuzzleUI:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.on_close()
 
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_l:
-            self.is_solved = True
-            if self.on_solve:
-                self.on_solve()
-            self.audio_system.play_sfx(f"vault_success")
+        # if event.type == pygame.KEYDOWN and event.key == pygame.K_l:
+        #     self.is_solved = True
+        #     if self.on_solve:
+        #         self.on_solve()
+        #     self.audio_system.play_sfx(f"vault_success")
 
         # Pass events directly to your Button instances
         for btn in self.buttons:

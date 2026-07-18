@@ -72,7 +72,7 @@ class GameManager:
         ]
         for dialog in start_dialogs:
             self.level.create_message(dialog, delay_s=delay_s)
-            # delay_s += dialog.count(" ") / 4 + 1
+            delay_s += dialog.count(" ") / 4 + 1
         self.level.create_timer(
             "sun_crash", self.start_sun_crash_timer, delay_s=delay_s - 3
         )
