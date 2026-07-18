@@ -69,6 +69,97 @@ class Button:
         if self.is_pressed:
             current_image = self.image_pressed
         screen.blit(current_image, self.rect)
+
+
+class Entry:
+    def __init__(self, x, y, width, height, font_size=22, placeholder="Type here..."):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.placeholder = placeholder
+        self.text = ""
+        
+        # Focus state
+        self.is_active = False
+        self.rect = pygame.Rect(x - width // 2, y - height // 2, width, height)
+        
+        # Font setup
+        try:
+            self.font = pygame.font.SysFont("consolas", font_size)
+        except Exception:
+            self.font = pygame.font.Font(None, font_size + 4)
+            
+        # Cursor blink animation variables
+        self.cursor_visible = True
+        self.cursor_timer = 0
+
+    def handle_event(self, event):
+        # 1. Check for mouse click to toggle selection focus
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos):
+                self.is_active = True
+                # Start text input system context
+                pygame.txtinput.start() if hasattr(pygame, 'txtinput') else None
+            else:
+                self.is_active = False
+
+        # 2. Capture keyboard inputs only if box is selected/active
+        if self.is_active:
+            if event.type == pygame.TEXTINPUT:
+                self.text += event.text
+                
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_BACKSPACE:
+                    self.text = self.text[:-1]
+
+    def update(self):
+        # Blink cursor every 30 frames (~0.5 seconds at 60 FPS)
+        if self.is_active:
+            self.cursor_timer += 1
+            if self.cursor_timer >= 30:
+                self.cursor_visible = not self.cursor_visible
+                self.cursor_timer = 0
+        else:
+            self.cursor_visible = False
+
+    def get_text(self):
+        return self.text
+
+    def clear(self):
+        self.text = ""
+
+    def draw(self, screen):
+        # 1. Background box (Darker sci-fi slate)
+        bg_color = (20, 24, 30) if self.is_active else (15, 18, 22)
+        pygame.draw.rect(screen, bg_color, self.rect, border_radius=6)
+        
+        # 2. Border outline (Glows brighter when typing)
+        border_color = (100, 180, 220) if self.is_active else (50, 55, 65)
+        pygame.draw.rect(screen, border_color, self.rect, width=2, border_radius=6)
+
+        # 3. Render Text inside box
+        if self.text == "":
+            # Render empty placeholder hint text
+            text_surf = self.font.render(self.placeholder, True, (80, 85, 95))
+        else:
+            text_surf = self.font.render(self.text, True, (230, 235, 245))
+
+        # Clamp text position inside the left padding margin
+        text_rect = text_surf.get_rect(midleft=(self.rect.left + 12, self.rect.centery))
+        screen.blit(text_surf, text_rect)
+
+        # 4. Draw blinking cursor line
+        if self.cursor_visible:
+            cursor_x = text_rect.right + 2 if self.text != "" else self.rect.left + 12
+            pygame.draw.line(
+                screen, 
+                (100, 180, 220), 
+                (cursor_x, self.rect.top + 10), 
+                (cursor_x, self.rect.bottom - 10), 
+                width=2
+            )
+
 class Message:
     def __init__(self, text, screen_width, age, padding = 20, height = 40, center_image_path = "message_center.png", font_size = 20, font_name = None):
         self.text = text
@@ -326,9 +417,11 @@ class EndUI:
 
 
 class WirePuzzleUI:
-    def __init__(self, num_wires=4, on_solve=None):
+    def __init__(self, audio_system, num_wires=4, on_solve=None, on_close=None):
+        self.audio_system = audio_system
         self.num_wires = num_wires
         self.on_solve = on_solve
+        self.on_close = on_close
         self.is_solved = False
         
         # Enforced Box Dimensions (Wider Layout: 360 wide, 360 high)
@@ -452,8 +545,13 @@ class WirePuzzleUI:
             })
 
     def handle_event(self, event):
-        if self.is_solved:
-            return
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            self.on_close()
+
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_l:
+            self.is_solved = True
+            if self.on_solve:
+                self.on_solve()
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mouse_pos = pygame.mouse.get_pos()
@@ -472,6 +570,7 @@ class WirePuzzleUI:
                         self.active_wire["target_pos"] = right_node["pos"]
                         right_node["connected"] = True
                         self._check_victory()
+                        self.audio_system.play_sfx(f"connect_light_{random.choice((1, 2, 3, 4))}")
                         break
                 self.active_wire = None
 
@@ -483,6 +582,7 @@ class WirePuzzleUI:
                     for left_node in self.left_nodes:
                         if left_node["target_pos"] == right_node["pos"]:
                             left_node["connected"] = False
+                            self.audio_system.play_sfx(f"electric_shock_{random.choice((1, 2, 3))}")
                             break
                     self._check_victory()
                     break
@@ -533,11 +633,8 @@ class WirePuzzleUI:
             slot_x = node["pos"][0] - (self.slot_size[0] // 2)
             slot_y = node["pos"][1] - (self.slot_size[1] // 2)
             
-            if self.slot_img:
-                screen.blit(self.slot_img, (slot_x, slot_y))
-            else:
-                pygame.draw.circle(screen, (20, 22, 26), node["pos"], self.slot_size[0] // 2)
-                pygame.draw.circle(screen, (70, 75, 85), node["pos"], self.slot_size[0] // 2, width=1)
+            pygame.draw.circle(screen, (20, 22, 26), node["pos"], self.slot_size[0] // 2)
+            pygame.draw.circle(screen, (70, 75, 85), node["pos"], self.slot_size[0] // 2, width=1)
 
         # Draw Connected Lines
         for node in self.left_nodes:
@@ -566,10 +663,11 @@ class WirePuzzleUI:
                 pygame.draw.circle(screen, (60, 65, 70), node["pos"], self.node_radius)
 
 class VaultPuzzleUI:
-    def __init__(self, audio_system, solution=None, on_solve=None):
+    def __init__(self, audio_system, solution=None, on_solve=None, on_close=None):
         self.audio_system = audio_system
         self.solution = solution if solution else ["I", "II", "III", "IV"]
         self.on_solve = on_solve
+        self.on_close = on_close
         self.is_solved = False
         self.current_input = []
         
@@ -640,27 +738,35 @@ class VaultPuzzleUI:
         self.audio_system.play_sfx(f"rusty_click_{random.choice((1, 2, 3))}")
         if label == "insert":
             # Check if input matches the 4-digit solution!
-            if all([i == s for i, s in zip(self.current_input, self.solution)]):
+            if \
+                len(self.current_input) == len(self.solution) and\
+                all([self.current_input[i] == self.solution[i] for i in range(len(self.current_input))]):
+
                 self.is_solved = True
-                print("🔓 Vault Unlocked! Code Accepted.")
                 if self.on_solve:
                     self.on_solve()
                 self.audio_system.play_sfx(f"vault_success")
             else:
                 # Wrong answer: Flash red and clear input
-                print("❌ Access DenieWrong Code.")
                 self.error_timer = 30 # Flash for 30 frames (~0.5 seconds)
                 self.current_input = []
+                self.audio_system
                 self.audio_system.play_sfx(f"vault_fail_{random.choice((1, 2, 3))}")
         else:
-            # It's a numeral button ("1" through "5")
+            # It's a numeral button ("I" through "V")
             # Only allow typing up to 4 digits (matching the 4 Xs)
             if len(self.current_input) < 4:
                 self.current_input.append(label)
 
-    def handle_event(self, event):
-        if self.is_solved:
-            return
+    def handle_event(self, event):       
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            self.on_close()
+
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_l:
+            self.is_solved = True
+            if self.on_solve:
+                self.on_solve()
+            self.audio_system.play_sfx(f"vault_success")
 
         # Pass events directly to your Button instances
         for btn in self.buttons:
@@ -721,3 +827,75 @@ class VaultPuzzleUI:
                 self.screen_rect.centery
             ))
             screen.blit(text_surf, text_rect)
+
+class AiChatUI:
+    def __init__(self, on_send=None, on_close=None):
+        self.on_send = on_send
+        self.on_close = on_close
+        
+        # Get host screen boundaries dynamically
+        screen_size = pygame.display.get_surface().get_size() if pygame.display.get_surface() else (800, 600)
+        scr_w, scr_h = screen_size[0], screen_size[1]
+        
+        # Positioning layout proportions
+        panel_y = scr_h - 45
+        entry_w = int(scr_w * 0.70) # Takes up 70% of lower width
+        entry_h = 45
+        
+        # Center coordinate calculation points
+        entry_center_x = (scr_w - 120) // 2
+        button_center_x = scr_w - 70
+        
+        # 1. Instantiate the Entry sibling component
+        self.input_entry = Entry(
+            x=entry_center_x, 
+            y=panel_y, 
+            width=entry_w, 
+            height=entry_h, 
+            placeholder="Ask your Spaceship AI something..."
+        )
+        
+        # 2. Instantiate your exact custom Button class
+        self.send_button = Button(
+            normal_image_path="assets/images/gui/send_normal.png",
+            x=button_center_x,
+            y=panel_y,
+            action=self.submit_message
+        )
+
+    def submit_message(self):
+        message = self.input_entry.get_text().strip()
+        if message: # Ignore blank message strings
+            if self.on_send:
+                self.on_send(message)
+            self.input_entry.clear() # Wipe clean for next inputs
+
+    def handle_event(self, event):
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            self.on_close()
+    
+        # Route events down to children objects
+        self.input_entry.handle_event(event)
+        self.send_button.handle_event(event)
+        
+        # Intercept Enter / Return keyboard execution
+        if event.type == pygame.KEYDOWN and self.input_entry.is_active:
+            if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+                self.submit_message()
+
+    def update(self):
+        self.input_entry.update()
+        self.send_button.update()
+
+    def draw(self, screen):
+        # Draw a dark backing taskbar tray to segment the chat overlay visually
+        tray_rect = pygame.Rect(0, screen.get_height() - 70, screen.get_width(), 70)
+        
+        # Draw soft visual transparent backing bar
+        tray_surface = pygame.Surface((tray_rect.width, tray_rect.height), pygame.SRCALPHA)
+        tray_surface.fill((8, 10, 15, 180))
+        screen.blit(tray_surface, tray_rect.topleft)
+        
+        # Render the text field and send asset icon
+        self.input_entry.draw(screen)
+        self.send_button.draw(screen)

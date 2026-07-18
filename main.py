@@ -9,7 +9,7 @@ pygame.display.set_caption("Spacecraft Puzzle")
 
 from game_manager import GameManager
 from debug import debug
-
+# TODO: thruster
 async def main():
     running = True
     clock = pygame.time.Clock()

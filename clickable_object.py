@@ -17,7 +17,6 @@ class Clickable(Entity):
 
     def click(self):
         self.clicked = True
-        print(self, "was clicked")
 
     def handle_event(self, event, action_handler):
         if event.type != pygame.MOUSEBUTTONUP:
