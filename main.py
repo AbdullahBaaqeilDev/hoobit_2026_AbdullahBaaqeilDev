@@ -9,6 +9,7 @@ pygame.display.set_caption("Spacecraft Puzzle")
 
 from game_manager import GameManager
 
+
 async def main():
     running = True
     clock = pygame.time.Clock()
@@ -18,7 +19,7 @@ async def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            
+
             game.handle_events(event)
         game.update()
         game.draw(screen)
@@ -27,5 +28,6 @@ async def main():
 
         clock.tick(60)
         await asyncio.sleep(0)
+
 
 asyncio.run(main())

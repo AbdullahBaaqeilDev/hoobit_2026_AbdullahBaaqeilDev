@@ -8,34 +8,46 @@ from transition_area import TransitionArea
 
 
 class LevelData:
-    def __init__(self, obstacles, clickables, images, transition_area, player_spawn) -> None:
+    def __init__(
+        self, obstacles, clickables, images, transition_area, player_spawn
+    ) -> None:
         self.obstacles = obstacles
         self.clickables = clickables
-        self.images = images  
+        self.images = images
         self.player_spawn = player_spawn
         self.transition_area = transition_area
-    
+
     def copy(self):
         level = LevelData(
-            obstacles = [Obstacle(o.rect.x, o.rect.y, o.rect.width, o.rect.height) for o in self.obstacles],
-            clickables = [Clickable(c.action_id, c.rect.x, c.rect.y, c.rect.w, c.rect.h) for c in self.clickables],
-            images = self.images,
-            transition_area = TransitionArea(
+            obstacles=[
+                Obstacle(o.rect.x, o.rect.y, o.rect.width, o.rect.height)
+                for o in self.obstacles
+            ],
+            clickables=[
+                Clickable(c.action_id, c.rect.x, c.rect.y, c.rect.w, c.rect.h)
+                for c in self.clickables
+            ],
+            images=self.images,
+            transition_area=TransitionArea(
                 self.transition_area.target,
                 self.transition_area.rect.x,
                 self.transition_area.rect.y,
                 self.transition_area.rect.w,
                 self.transition_area.rect.h,
             ),
-            player_spawn = self.player_spawn.copy(),
+            player_spawn=self.player_spawn.copy(),
         )
         return level
+
 
 def load_room_images(room):
     images = {}
     for image_path in Path(f"assets/images/{room}_room").glob("*.png"):
-        images[Path(image_path).stem] = Entity(0, 0, pygame.transform.scale2x(pygame.image.load(image_path)))
+        images[Path(image_path).stem] = Entity(
+            0, 0, pygame.transform.scale2x(pygame.image.load(image_path))
+        )
     return images
+
 
 FRONT_ROOM_DATA = LevelData(
     [
@@ -57,7 +69,7 @@ FRONT_ROOM_DATA = LevelData(
     ],
     load_room_images("front"),
     TransitionArea("back", 0, 120, 20, 100),
-    Vector2(200, 160)
+    Vector2(200, 160),
 )
 
 BACK_ROOM_DATA = LevelData(
@@ -78,11 +90,11 @@ BACK_ROOM_DATA = LevelData(
         Clickable("back_storage_action", 374, 54, 30, 27),
         Clickable("electricity_panal_action", 416, 55, 42, 27),
         Clickable("vent_action", 453, 165, 34, 35),
-        Clickable("higher_engine_action", 247, 96, 56, 168/3),
-        Clickable("middle_engine_action", 247, 96 + 168/3, 56, 168/3),
-        Clickable("lower_engine_action", 247, 96 + 168*2/3, 56, 168/3),
+        Clickable("higher_engine_action", 247, 96, 56, 168 / 3),
+        Clickable("middle_engine_action", 247, 96 + 168 / 3, 56, 168 / 3),
+        Clickable("lower_engine_action", 247, 96 + 168 * 2 / 3, 56, 168 / 3),
     ],
     load_room_images("back"),
     TransitionArea("front", 620, 142, 58, 81),
-    Vector2(500, 175)
+    Vector2(500, 175),
 )

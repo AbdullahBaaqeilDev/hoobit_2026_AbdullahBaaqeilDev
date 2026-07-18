@@ -17,15 +17,14 @@ class Level:
         }
         self.timers = {
             "sun_crash": Timer(self.sun_crash, 60),
-            "footsteps_cooldown": Timer(self.check_footsteps_cooldown, 0.5, True)
-        } ; self.timers["sun_crash"].disabled = True
+            "footsteps_cooldown": Timer(self.check_footsteps_cooldown, 0.5, True),
+        }
+        self.timers["sun_crash"].disabled = True
         self.start_time = 0
         self.player = Player()
         self.audio_system = None
         self.player.rect.center = self.room.player_spawn
-        self.inventory = [
-            "note"
-        ]
+        self.inventory = ["note"]
         self.status = {
             "vault_open": False,
             "batteries_on": False,
@@ -43,7 +42,7 @@ class Level:
             "higher_engine_fixed": False,
             "middle_engine_fixed": False,
             "lower_engine_fixed": False,
-            "ai_persuaded": False
+            "ai_persuaded": False,
         }
         self.messages = {}
 
@@ -59,9 +58,11 @@ class Level:
 
     def start(self):
         self.start_time = time.time()
-        self.audio_system.change_song_to("JDSherbert - Ambiences Music Pack - Frost Mountain Aura")
+        self.audio_system.change_song_to(
+            "JDSherbert - Ambiences Music Pack - Frost Mountain Aura"
+        )
 
-    def create_timer(self, name, callback, delay_s = 1, periodic = False):
+    def create_timer(self, name, callback, delay_s=1, periodic=False):
         self.timers[name] = Timer(callback, delay_s, periodic)
 
     def del_timer(self, name):
@@ -87,7 +88,7 @@ class Level:
     def sun_crash(self):
         print("crashed the sun")
 
-    def create_message(self, text, age = "auto", name = None, delay_s = 0):
+    def create_message(self, text, age="auto", name=None, delay_s=0):
         while not name or name in self.messages.keys():
             name = str(randrange(0, 1_000_000_000))
 
@@ -96,21 +97,17 @@ class Level:
                 text,
                 pygame.display.get_window_size()[0],
                 age if age != "auto" else text.count(" ") / 3.5,
-                center_image_path = "assets/images/gui/message_center.png",
+                center_image_path="assets/images/gui/message_center.png",
             )
 
         if delay_s:
-            self.create_timer(
-                name,
-                message_creation_callback,
-                delay_s
-            )
+            self.create_timer(name, message_creation_callback, delay_s)
         else:
             self.messages[name] = Message(
                 text,
                 pygame.display.get_window_size()[0],
                 age if age != "auto" else text.count(" ") / 3.5,
-                center_image_path = "assets/images/gui/message_center.png",
+                center_image_path="assets/images/gui/message_center.png",
             )
 
     def handle_event(self, event):
@@ -122,21 +119,23 @@ class Level:
                 self.audio_system.play_sfx(f"bubble_click_{choice((1, 2, 3))}")
 
     def handle_transition(self):
-        if self.room.transition_area.check(self.player) and not self.room.transition_area.disabled:
+        if (
+            self.room.transition_area.check(self.player)
+            and not self.room.transition_area.disabled
+        ):
             self.go_to_room(self.room.transition_area.target)
 
     def first_comp_disorder_action(self):
-
         if self.status["batteries_on"]:
             if self.num_comp_on() == 0:
                 self.audio_system.play_sfx("spell_fail")
                 self.status["first_comp_disorder"] = False
                 return
-            
+
             if self.status["first_comp_disorder"]:
                 self.create_message("Maybe there is an order")
 
-            self.audio_system.play_sfx(f"{choice(("marimba_fail", "trumpet_fail"))}")
+            self.audio_system.play_sfx(f"{choice(('marimba_fail', 'trumpet_fail'))}")
             self.status["comp_1_on"] = False
             self.status["comp_2_on"] = False
             self.status["comp_3_on"] = False
@@ -146,11 +145,11 @@ class Level:
     def num_comp_on(self):
         num = 0
         for i in range(1, 5):
-            if self.status[f"comp_{i}_on"]: num += 1
+            if self.status[f"comp_{i}_on"]:
+                num += 1
         return num
 
     def on_clickable_interacted(self, action_id):
-        
         def turn_on_ai():
             if self.room_name == "front":
                 self.audio_system.change_song_to("18. The Old Magician")
@@ -164,7 +163,7 @@ class Level:
             case "vault_action":
                 if not self.status["vault_open"]:
                     self.manager.open_puzzle("VAULT")
-            case "batteries_action": 
+            case "batteries_action":
                 if "batteries" in self.inventory and not self.status["batteries_on"]:
                     self.audio_system.play_sfx("power_on_sfx")
                     self.status["batteries_on"] = True
@@ -174,36 +173,54 @@ class Level:
                     self.create_timer(
                         "open_comp",
                         lambda: self.create_message("Try to open the 'Computers'"),
-                        2.5
+                        2.5,
                     )
             case "comp_1_action":
                 if self.status["batteries_on"] and not self.status["comp_1_on"]:
                     self.status["comp_1_on"] = True
                     self.audio_system.play_sfx(f"comp_{self.num_comp_on()}_on_sfx")
             case "comp_2_action":
-                if self.status["batteries_on"] and not self.status["comp_2_on"] and self.status["comp_1_on"]:
+                if (
+                    self.status["batteries_on"]
+                    and not self.status["comp_2_on"]
+                    and self.status["comp_1_on"]
+                ):
                     self.status["comp_2_on"] = True
                     self.audio_system.play_sfx(f"comp_{self.num_comp_on()}_on_sfx")
-                elif not self.status["comp_2_on"]: self.first_comp_disorder_action()
+                elif not self.status["comp_2_on"]:
+                    self.first_comp_disorder_action()
             case "comp_3_action":
-                if self.status["batteries_on"] and not self.status["comp_3_on"] and self.status["comp_2_on"]:
+                if (
+                    self.status["batteries_on"]
+                    and not self.status["comp_3_on"]
+                    and self.status["comp_2_on"]
+                ):
                     self.status["comp_3_on"] = True
                     self.audio_system.play_sfx(f"comp_{self.num_comp_on()}_on_sfx")
-                elif not self.status["comp_3_on"]: self.first_comp_disorder_action()
+                elif not self.status["comp_3_on"]:
+                    self.first_comp_disorder_action()
             case "comp_4_action":
-                if self.status["batteries_on"] and not self.status["comp_4_on"] and self.status["comp_3_on"]:
+                if (
+                    self.status["batteries_on"]
+                    and not self.status["comp_4_on"]
+                    and self.status["comp_3_on"]
+                ):
                     self.status["comp_4_on"] = True
                     self.audio_system.play_sfx(f"comp_{self.num_comp_on()}_on_sfx")
-                elif not self.status["comp_4_on"]: self.first_comp_disorder_action()
-            case "ai_action" : 
-                if self.status["batteries_on"] and not self.status["ai_on"] and self.status["comp_4_on"]:
-                    self.create_message("Press 'Tap' or 'Left Click' the AI screen to Talk")
+                elif not self.status["comp_4_on"]:
+                    self.first_comp_disorder_action()
+            case "ai_action":
+                if (
+                    self.status["batteries_on"]
+                    and not self.status["ai_on"]
+                    and self.status["comp_4_on"]
+                ):
+                    self.create_message(
+                        "Press 'Tap' or 'Left Click' the AI screen to Talk"
+                    )
                     self.audio_system.play_sfx("ai_on_sfx")
                     self.audio_system.set_song_volume(0.0)
-                    self.create_timer(
-                        "second_ai_sfx",
-                        turn_on_ai,
-                        3)
+                    self.create_timer("second_ai_sfx", turn_on_ai, 3)
                 elif self.status["ai_on"]:
                     self.manager.open_ai_chat()
             case "front_storage_action":
@@ -232,10 +249,12 @@ class Level:
                         "And a dirty note saying '[156,230,78]4[108,230,108]1[237,21,86]3[104,29,209]2'",
                     ]
                     for dialog in start_dialogs:
-                        self.create_message(dialog, delay_s = delay_s)
+                        self.create_message(dialog, delay_s=delay_s)
                         delay_s += dialog.count(" ") / 4 + 1
                 else:
-                    self.create_message("the dirty note said '[156,230,78]4[108,230,108]1[237,21,86]3[104,29,209]2[white]' forgot ? hmph what a human")
+                    self.create_message(
+                        "the dirty note said '[156,230,78]4[108,230,108]1[237,21,86]3[104,29,209]2[white]' forgot ? hmph what a human"
+                    )
             case "engine_fire_higher_action":
                 self.create_message("How did your hands reah there?!")
             case "engine_fire_lower_action":
@@ -253,31 +272,33 @@ class Level:
             case "vent_action":
                 # TODO: make the ai make a comment store that comment and replay it later
                 self.create_message("Good thing the ventilation system didn't break")
-            case "higher_engine_action": 
+            case "higher_engine_action":
                 if "wires" in self.inventory and not self.status["higher_engine_fixed"]:
                     self.manager.open_puzzle("WIRES_2")
             case "middle_engine_action":
-                if "heat_chamber" in self.inventory and not self.status["middle_engine_fixed"]:
+                if (
+                    "heat_chamber" in self.inventory
+                    and not self.status["middle_engine_fixed"]
+                ):
                     self.inventory.remove("heat_chamber")
                     self.status["middle_engine_fixed"] = True
                     self.audio_system.play_sfx("connected")
-            case "lower_engine_action": 
+            case "lower_engine_action":
                 if "wires" in self.inventory and not self.status["lower_engine_fixed"]:
                     self.manager.open_puzzle("WIRES_1")
 
     def get_correct_room_image(self):
-        
         if self.room_name == "front":
             status_k_array = ("v", "s", "b", "c", "c", "c", "c", "a")
             status_translate = (
-                ("c", "o"), 
-                ("c", "o"), 
-                ("f", "n"), 
-                ("f", "n"), 
-                ("f", "n"), 
-                ("f", "n"), 
-                ("f", "n"), 
-                ("f", "n")
+                ("c", "o"),
+                ("c", "o"),
+                ("f", "n"),
+                ("f", "n"),
+                ("f", "n"),
+                ("f", "n"),
+                ("f", "n"),
+                ("f", "n"),
             )
             status_v_array = (
                 self.status["vault_open"],
@@ -292,11 +313,11 @@ class Level:
         elif self.room_name == "back":
             status_k_array = ("t", "s", "h", "m", "l")
             status_translate = (
-                ("c", "o"), 
-                ("c", "o"), 
-                ("b", "f"), 
-                ("b", "f"), 
-                ("b", "f"), 
+                ("c", "o"),
+                ("c", "o"),
+                ("b", "f"),
+                ("b", "f"),
+                ("b", "f"),
             )
             status_v_array = (
                 self.status["trash_can_open"],
@@ -308,9 +329,11 @@ class Level:
 
         image_name = ""
         for i in range(len(status_k_array)):
-            image_name += status_k_array[i] + status_translate[i][status_v_array[i]] + "_"
+            image_name += (
+                status_k_array[i] + status_translate[i][status_v_array[i]] + "_"
+            )
         image_name = image_name[:-1]
-        
+
         return self.room.images[image_name]
 
     def update_timers(self):

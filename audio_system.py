@@ -7,10 +7,7 @@ class AudioSystem:
     music_path = "assets/audio/music"
 
     def __init__(self):
-        self.audio_lib = {
-            "sfx": {},
-            "music": {} 
-        }
+        self.audio_lib = {"sfx": {}, "music": {}}
         self.load_audio()
         pygame.mixer.music.set_volume(0.5)
 
@@ -39,7 +36,7 @@ class AudioSystem:
                 print(f"Error playing song {song_name}: {e}")
         else:
             print(f"The song '{song_name}' not found in library")
-        
+
     def set_song_volume(self, level):
         pygame.mixer.music.set_volume(level)
 

@@ -25,14 +25,30 @@ class GameManager:
         self.level = Level(self)
         self.level.audio_system = self.audio_system
 
-        self.main_menu_ui = MainMenuUI(self.start_game, self.open_settings, self.quit_game)
+        self.main_menu_ui = MainMenuUI(
+            self.start_game, self.open_settings, self.quit_game
+        )
         self.end_ui = EndUI(self.restart, self.quit_game)
-        self.wire_puzzle_1 = WirePuzzleUI(self.audio_system, 4, self.on_wires_puzzle_1_solve, self.close_puzzle)
-        self.wire_puzzle_2 = WirePuzzleUI(self.audio_system, 8, self.on_wires_puzzle_2_solve, self.close_puzzle)
-        self.vault_puzzle = VaultPuzzleUI(self.audio_system, ("II", "I", "V", "IV"), self.on_vault_puzzle_solve, self.close_puzzle)
-        self.storage_puzzle = StoragePuzzleUI(self.audio_system, ("IV", "I", "III", "II"), self.on_storage_puzzle_solve, self.close_puzzle)
+        self.wire_puzzle_1 = WirePuzzleUI(
+            self.audio_system, 4, self.on_wires_puzzle_1_solve, self.close_puzzle
+        )
+        self.wire_puzzle_2 = WirePuzzleUI(
+            self.audio_system, 8, self.on_wires_puzzle_2_solve, self.close_puzzle
+        )
+        self.vault_puzzle = VaultPuzzleUI(
+            self.audio_system,
+            ("II", "I", "V", "IV"),
+            self.on_vault_puzzle_solve,
+            self.close_puzzle,
+        )
+        self.storage_puzzle = StoragePuzzleUI(
+            self.audio_system,
+            ("IV", "I", "III", "II"),
+            self.on_storage_puzzle_solve,
+            self.close_puzzle,
+        )
         self.ai_chat_ui = AiChatUI(self.on_send, self.close_ai_chat)
-        
+
         self.audio_system.change_song_to("25. Dark Factory")
 
         # Track what the AI said last so we know when a NEW response arrives
@@ -42,7 +58,7 @@ class GameManager:
     def start_game(self):
         self.current_state = "GAMEPLAY"
         self.level.start()
-        
+
         delay_s = -1
         start_dialogs = [
             "You are the [red]last human[white] ",
@@ -52,42 +68,40 @@ class GameManager:
             "[red]You will be melting in the [yellow]sun[white]    ",
             "btw it's the year [104,29,209]2[108,230,108]1[17,154,245]5[156,230,78]4[white]            ",
             "5:00  ",
-            "4:59  "
+            "4:59  ",
         ]
         for dialog in start_dialogs:
-            self.level.create_message(dialog, delay_s = delay_s)
+            self.level.create_message(dialog, delay_s=delay_s)
             # delay_s += dialog.count(" ") / 4 + 1
         self.level.create_timer(
-            "sun_crash",
-            self.start_sun_crash_timer,
-            delay_s=delay_s - 3
+            "sun_crash", self.start_sun_crash_timer, delay_s=delay_s - 3
         )
 
     def start_sun_crash_timer(self):
         self.level.timers["sun_crash"].start()
         self.audio_system.play_sfx("classic_alarm")
-    
+
     def restart(self):
         pass
 
     def open_menu(self):
         self.current_state = "MENU"
-    
+
     def open_settings(self):
         self.current_state = "SETTINGS"
 
     def open_puzzle(self, name):
         self.current_state = name
-    
+
     def close_puzzle(self):
         self.current_state = "GAMEPLAY"
 
     def open_ai_chat(self):
         self.current_state = "AI_CHAT"
-    
+
     def close_ai_chat(self):
         self.current_state = "GAMEPLAY"
-    
+
     def quit_game(self):
         pygame.quit()
         exit()
@@ -115,10 +129,10 @@ class GameManager:
         self.level.status["front_storage_open"] = True
         self.current_state = "GAMEPLAY"
         self.level.create_message("You got A [237,39,21]'Pack of Wires'      ")
-    
+
     def on_send(self, player_message):
         return ai_system.talk_to_ai(player_message)
-    
+
     def handle_ai_response(self, new_data):
         pass
 
@@ -159,18 +173,18 @@ class GameManager:
             self.storage_puzzle.update()
         elif self.current_state == "AI_CHAT":
             self.ai_chat_ui.update()
-        
+
         if ai_system.is_thinking and not self.waiting_for_ai:
             self.waiting_for_ai = True
             self.ai_chat_ui.add_message("AI", "Thinking...")
 
         if self.waiting_for_ai and not ai_system.is_thinking:
             self.waiting_for_ai = False
-            
+
             # Remove the temporary "Thinking..." string
             if self.ai_chat_ui.messages[-1]["text"] == "Thinking...":
                 self.ai_chat_ui.messages.pop()
-            
+
             # Push the real Llama 3.1 response directly onto the chat display
             new_reply = ai_system.ai_data["text"]
             self.ai_chat_ui.add_message("AI", new_reply)

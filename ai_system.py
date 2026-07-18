@@ -10,13 +10,13 @@ load_dotenv()
 ai_data = {
     "text": "Press ENTER to begin.",
     "satisfaction_change": 0.0,
-    "help_human": False
+    "help_human": False,
 }
 
 is_thinking = False
 
 _api_key = os.getenv("GROQ_API_KEY", "")
-_client = AsyncGroq(api_key = _api_key)
+_client = AsyncGroq(api_key=_api_key)
 
 
 async def _fetch_groq_data(prompt: str):
@@ -97,42 +97,44 @@ Example Output:
             model="llama-3.1-8b-instant",  # Blazing fast
             messages=[
                 {"role": "system", "content": system_instruction},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt},
             ],
-            temperature = 0.8,
-            max_tokens = 200,
+            temperature=0.8,
+            max_tokens=200,
             # This constraint guarantees valid JSON syntax is returned
-            response_format = {"type": "json_object"} 
+            response_format={"type": "json_object"},
         )
-        
+
         raw_json_string = completion.choices[0].message.content
 
         ai_data = json.loads(raw_json_string)
-        
+
     except Exception as e:
         ai_data = {
             "text": f"System error reading neural link: {str(e)}",
             "anger": 1.0,
             "convinced_progress": 0.0,
-            "convinced_progress_to_help_human": False
+            "convinced_progress_to_help_human": False,
         }
     finally:
         is_thinking = False
 
+
 def get_ai_comment(main_action, status):
     pass
+
 
 def talk_to_ai(prompt: str):
     """
     Spins up the non-blocking task.
     """
     global is_thinking, ai_data
-    
+
     if is_thinking:
         return False
 
     is_thinking = True
     ai_data["text"] = "Parsing transmission..."
-    
+
     asyncio.create_task(_fetch_groq_data(prompt))
     return True

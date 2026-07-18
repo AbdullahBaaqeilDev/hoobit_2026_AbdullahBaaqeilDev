@@ -5,15 +5,14 @@ from pathlib import Path
 
 
 class Player(Entity):
-
     player_animations_path = "assets/images/player"
     animation_speed = 0.2
 
-    def __init__(self): 
+    def __init__(self):
         super().__init__()
         self.image = pygame.Surface((32, 32))
         self.image.fill((255, 0, 255))
-        self.rect = self.image.get_rect(topleft = (0, 0))
+        self.rect = self.image.get_rect(topleft=(0, 0))
         self.rect.w -= 12
         self.x, self.y = 0, 0
         self.status = "down"
@@ -32,7 +31,9 @@ class Player(Entity):
 
     def load_animations(self):
         for animation in self.animations.keys():
-            for animation_path in Path(self.player_animations_path + "/" + animation).glob("*.png"):
+            for animation_path in Path(
+                self.player_animations_path + "/" + animation
+            ).glob("*.png"):
                 self.animations[animation].append(
                     pygame.transform.scale2x(
                         pygame.image.load(animation_path).convert_alpha()
@@ -79,9 +80,9 @@ class Player(Entity):
             self.frame_index = 0
 
         self.image = animation[int(self.frame_index)]
-        self.rect = self.image.get_rect(topleft = self.rect.topleft)
+        self.rect = self.image.get_rect(topleft=self.rect.topleft)
         self.rect.w -= 12
-          
+
     def update(self, obstacle_sprites):
         self.input()
         self.get_status()
