@@ -60,3 +60,6 @@ python main.py
 ## Hackathon Notes
 
 Built entirely during Hoobit Hacks 2026. All asynchronous task handling, UI rendering, and API integration were designed and implemented from scratch.
+
+![Description of the screenshot](screenshot.png)
+![Description of the screenshot](screenshot1.png)
