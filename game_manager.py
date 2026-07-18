@@ -1,3 +1,4 @@
+import ai_system
 from sys import exit
 from level import Level
 from ui import *
@@ -25,7 +26,7 @@ class GameManager:
         self.level.audio_system = self.audio_system
 
         self.main_menu_ui = MainMenuUI(self.start_game, self.open_settings, self.quit_game)
-        self.end_ui = EndUI(lambda:0, lambda:0)
+        self.end_ui = EndUI(self.restart, self.quit_game)
         self.wire_puzzle_1 = WirePuzzleUI(self.audio_system, 4, self.on_wires_puzzle_1_solve, self.close_puzzle)
         self.wire_puzzle_2 = WirePuzzleUI(self.audio_system, 8, self.on_wires_puzzle_2_solve, self.close_puzzle)
         self.vault_puzzle = VaultPuzzleUI(self.audio_system, ("V", "II", "III", "IV"), self.on_vault_puzzle_solve, self.close_puzzle)
@@ -34,11 +35,17 @@ class GameManager:
         self.audio_system.change_song_to("25. Dark Factory")
         # self.current_state = "AI_CHAT"
 
+        # Track what the AI said last so we know when a NEW response arrives
+        self.last_known_text = ai_system.ai_data["text"]
+        self.waiting_for_ai = False
+
     def start_game(self):
         self.current_state = "GAMEPLAY"
         self.level.start()
         # TODO: make the dialog about the game and start the timer after that with alarm sfx
-        # TODO: 3.5 to 4 words per second make an auto message age option
+    
+    def restart(self):
+        pass
 
     def open_menu(self):
         self.current_state = "MENU"
@@ -80,7 +87,10 @@ class GameManager:
         self.current_state = "GAMEPLAY"
     
     def on_send(self, player_message):
-        print(player_message)
+        return ai_system.talk_to_ai(player_message)
+    
+    def handle_ai_response(self, new_data):
+        pass
 
     def handle_events(self, event):
         if self.current_state == "MENU":
@@ -115,6 +125,24 @@ class GameManager:
             self.vault_puzzle.update()
         elif self.current_state == "AI_CHAT":
             self.ai_chat_ui.update()
+        
+        if ai_system.is_thinking and not self.waiting_for_ai:
+            self.waiting_for_ai = True
+            # Optional: Add a temporary thinking indicator to the chat!
+            self.ai_chat_ui.add_message("AI", "Thinking...")
+
+        if self.waiting_for_ai and not ai_system.is_thinking:
+            self.waiting_for_ai = False
+            
+            # Remove the temporary "Thinking..." string if you added one
+            if self.ai_chat_ui.messages[-1]["text"] == "Thinking...":
+                self.ai_chat_ui.messages.pop()
+            
+            # Push the real Llama 3.1 response directly onto the chat display!
+            new_reply = ai_system.ai_data["text"]
+            self.ai_chat_ui.add_message("AI", new_reply)
+
+            self.handle_ai_response(ai_system.ai_data)
 
     def draw(self, screen):
         screen.fill((0, 0, 0))

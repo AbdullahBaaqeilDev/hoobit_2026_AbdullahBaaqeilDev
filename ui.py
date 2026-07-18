@@ -828,25 +828,31 @@ class VaultPuzzleUI:
             ))
             screen.blit(text_surf, text_rect)
 
+import pygame
+
 class AiChatUI:
     def __init__(self, on_send=None, on_close=None):
         self.on_send = on_send
         self.on_close = on_close
+        self.is_ai_active = False
         
-        # Get host screen boundaries dynamically
+        # 1. Chat History Storage
+        self.messages = [
+            {"sender": "AI", "text": "Press ENTER to begin communication..."}
+        ]
+        
+        # 2. Screen boundaries setup
         screen_size = pygame.display.get_surface().get_size() if pygame.display.get_surface() else (800, 600)
         scr_w, scr_h = screen_size[0], screen_size[1]
         
-        # Positioning layout proportions
         panel_y = scr_h - 45
-        entry_w = int(scr_w * 0.70) # Takes up 70% of lower width
+        entry_w = int(scr_w * 0.70)
         entry_h = 45
         
-        # Center coordinate calculation points
         entry_center_x = (scr_w - 120) // 2
         button_center_x = scr_w - 70
         
-        # 1. Instantiate the Entry sibling component
+        # 3. Instantiate Sibling UI Components
         self.input_entry = Entry(
             x=entry_center_x, 
             y=panel_y, 
@@ -855,30 +861,48 @@ class AiChatUI:
             placeholder="Ask your Spaceship AI something..."
         )
         
-        # 2. Instantiate your exact custom Button class
         self.send_button = Button(
             normal_image_path="assets/images/gui/send_normal.png",
             x=button_center_x,
             y=panel_y,
             action=self.submit_message
         )
+        
+        # 4. Chat History Display Box Dimensions
+        self.history_height = 220 # Slightly taller to give space for wrapped sentences
+        self.history_rect = pygame.Rect(
+            20, 
+            scr_h - 70 - self.history_height - 10, 
+            scr_w - 40, 
+            self.history_height
+        )
+        
+        # Setup Font
+        try:
+            self.chat_font = pygame.font.SysFont("consolas", 18, bold=True)
+        except Exception:
+            self.chat_font = pygame.font.Font(None, 22)
+
+    def add_message(self, sender, text):
+        self.messages.append({"sender": sender, "text": text})
 
     def submit_message(self):
         message = self.input_entry.get_text().strip()
-        if message: # Ignore blank message strings
+        if message:
+            self.add_message("PLAYER", message)
             if self.on_send:
                 self.on_send(message)
-            self.input_entry.clear() # Wipe clean for next inputs
+            self.input_entry.clear()
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            self.on_close()
+            if self.on_close:
+                self.on_close()
+            return
     
-        # Route events down to children objects
         self.input_entry.handle_event(event)
         self.send_button.handle_event(event)
         
-        # Intercept Enter / Return keyboard execution
         if event.type == pygame.KEYDOWN and self.input_entry.is_active:
             if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
                 self.submit_message()
@@ -887,15 +911,74 @@ class AiChatUI:
         self.input_entry.update()
         self.send_button.update()
 
+    def _wrap_text(self, text, max_width):
+        """
+        Splits a string of text into an array of lines that fit 
+        comfortably within max_width pixels based on the active font.
+        """
+        words = text.split(' ')
+        lines = []
+        current_line = ""
+
+        for word in words:
+            # Test what adding this word does to the width
+            test_line = current_line + " " + word if current_line else word
+            width, _ = self.chat_font.size(test_line)
+            
+            if width <= max_width:
+                current_line = test_line
+            else:
+                # Line is full, save it and start a new line with the current word
+                if current_line:
+                    lines.append(current_line)
+                current_line = word
+                
+        if current_line:
+            lines.append(current_line)
+            
+        return lines
+
     def draw(self, screen):
-        # Draw a dark backing taskbar tray to segment the chat overlay visually
-        tray_rect = pygame.Rect(0, screen.get_height() - 70, screen.get_width(), 70)
+        # 1. DRAW CHAT HISTORY PANEL BACKING
+        history_surface = pygame.Surface((self.history_rect.width, self.history_rect.height), pygame.SRCALPHA)
+        history_surface.fill((10, 14, 20, 210)) 
+        screen.blit(history_surface, self.history_rect.topleft)
+        pygame.draw.rect(screen, (60, 70, 85), self.history_rect, width=2, border_radius=8)
         
-        # Draw soft visual transparent backing bar
+        # 2. PROCESS AND WRAP ALL TEXT
+        # We need to turn our history into a clean list of ready-to-draw lines
+        render_queue = []
+        padding_margin = 30
+        max_text_width = self.history_rect.width - padding_margin
+        
+        for msg in self.messages:
+            prefix = "YOU: " if msg["sender"] == "PLAYER" else "AI: "
+            color = (100, 220, 255) if msg["sender"] == "PLAYER" else (255, 120, 80)
+            
+            # Wrap the string based on our layout limits
+            wrapped_lines = self._wrap_text(prefix + msg["text"], max_text_width)
+            
+            for line in wrapped_lines:
+                render_queue.append({"text": line, "color": color})
+
+        # 3. RENDER ONLY THE MOST RECENT WRAPPED LINES FROM THE BOTTOM UP
+        line_height = 24
+        # Calculate exactly how many items we can display inside our box height
+        max_lines_visible = (self.history_rect.height - 20) // line_height
+        
+        # Slice off everything except the very last lines to fit the view
+        lines_to_draw = render_queue[-max_lines_visible:]
+        
+        start_y = self.history_rect.top + 12
+        for idx, line_data in enumerate(lines_to_draw):
+            text_surf = self.chat_font.render(line_data["text"], True, line_data["color"])
+            screen.blit(text_surf, (self.history_rect.left + 15, start_y + (idx * line_height)))
+
+        # 4. DRAW BOTTOM INPUT TRAY
+        tray_rect = pygame.Rect(0, screen.get_height() - 70, screen.get_width(), 70)
         tray_surface = pygame.Surface((tray_rect.width, tray_rect.height), pygame.SRCALPHA)
-        tray_surface.fill((8, 10, 15, 180))
+        tray_surface.fill((8, 10, 15, 230))
         screen.blit(tray_surface, tray_rect.topleft)
         
-        # Render the text field and send asset icon
         self.input_entry.draw(screen)
         self.send_button.draw(screen)

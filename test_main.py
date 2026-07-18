@@ -22,7 +22,7 @@ async def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     # Fire off the async API call
-                    ai_system.ask_ai(user_input)
+                    ai_system.talk_to_ai(user_input)
                 
                 elif event.key == pygame.K_BACKSPACE:
                     user_input = user_input[:-1]
