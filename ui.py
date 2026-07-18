@@ -828,7 +828,172 @@ class VaultPuzzleUI:
             ))
             screen.blit(text_surf, text_rect)
 
-import pygame
+
+class StoragePuzzleUI:
+    def __init__(self, audio_system, solution=None, on_solve=None, on_close=None):
+        self.audio_system = audio_system
+        self.solution = solution if solution else ["I", "II", "III", "IV"]
+        self.on_solve = on_solve
+        self.on_close = on_close
+        self.is_solved = False
+        self.current_input = []
+        
+        # Calculator Casing Dimensions
+        self.box_width = 260
+        self.box_height = 240
+        
+        # Center dynamically on screen
+        screen_size = pygame.display.get_surface().get_size() if pygame.display.get_surface() else (800, 600)
+        self.box_x = 140
+        self.box_y = 60
+        
+        # Black Screen Surface Dimensions (Top of calculator)
+        self.screen_rect = pygame.Rect(self.box_x + 10, self.box_y + 9, 250, 40)
+        
+        # Setup Fonts for Display Screen
+        try:
+            self.font = pygame.font.SysFont("consolas", 32, bold=True)
+        except Exception:
+            self.font = pygame.font.Font(None, 38)
+            
+        # Initialize the 6 Calculator Buttons using your Button class
+        self.buttons = []
+        self._init_buttons()
+
+        self.background = pygame.transform.scale2x(pygame.image.load("assets/images/gui/storage_puzzle_background.png").convert_alpha())
+        
+        # UI Feedback State
+        self.error_timer = 0 # Used to flash the screen red on wrong answer
+
+    def _init_buttons(self):
+        # We use standard strings for labels.
+        # Ensure you have files like: "assets/images/gui/1_normal.png", "assets/images/gui/send_normal.png", etc.
+        labels = ["I", "II", "III", "IV", "V", "insert"]
+        
+        grid_start_y = self.box_y + 75
+        btn_w = 60
+        btn_h = 60
+        gap_x = 25
+        gap_y = 15
+        
+        for idx, label in enumerate(labels):
+            col = idx % 3
+            row = idx // 3
+            
+            # Calculate center X and Y for your Button's center-based rect
+            center_x = self.box_x + 20 + (col * (btn_w + gap_x)) + (btn_w // 2)
+            center_y = grid_start_y + (row * (btn_h + gap_y)) + (btn_h // 2)
+            
+            # Construct exact asset path expected by your Button class
+            image_path = f"assets/images/gui/{label}_normal.png"
+            
+            # Create action callback binding the specific label to the click handler
+            action_callback = lambda l=label: self._on_button_click(l)
+            
+            # Instantiate your exact Button class!
+            btn = Button(
+                normal_image_path=image_path,
+                x=center_x,
+                y=center_y,
+                action=action_callback,
+                fallback_size=(60, 60)
+            )
+            
+            self.buttons.append(btn)
+
+    def _on_button_click(self, label):
+        self.audio_system.play_sfx(f"rusty_click_{random.choice((1, 2, 3))}")
+        if label == "insert":
+            # Check if input matches the 4-digit solution!
+            if \
+                len(self.current_input) == len(self.solution) and\
+                all([self.current_input[i] == self.solution[i] for i in range(len(self.current_input))]):
+
+                self.is_solved = True
+                if self.on_solve:
+                    self.on_solve()
+                self.audio_system.play_sfx(f"vault_success")
+            else:
+                # Wrong answer: Flash red and clear input
+                self.error_timer = 30 # Flash for 30 frames (~0.5 seconds)
+                self.current_input = []
+                self.audio_system
+                self.audio_system.play_sfx(f"vault_fail_{random.choice((1, 2, 3))}")
+        else:
+            # It's a numeral button ("I" through "V")
+            # Only allow typing up to 4 digits (matching the 4 Xs)
+            if len(self.current_input) < 4:
+                self.current_input.append(label)
+
+    def handle_event(self, event):       
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            self.on_close()
+
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_l:
+            self.is_solved = True
+            if self.on_solve:
+                self.on_solve()
+            self.audio_system.play_sfx(f"vault_success")
+
+        # Pass events directly to your Button instances
+        for btn in self.buttons:
+            btn.handle_event(event)
+
+    def update(self):
+        if self.is_solved:
+            return
+
+        # Update hover states on your Button instances
+        for btn in self.buttons:
+            btn.update()
+            
+        # Count down error flash timer
+        if self.error_timer > 0:
+            self.error_timer -= 1
+
+    def draw(self, screen):
+        screen.blit(self.background, (0, 0))
+
+        # Draw Calculator Outer Casing
+        # pygame.draw.rect(screen, (35, 38, 45), (self.box_x, self.box_y, self.box_width, self.box_height), border_radius=15)
+        # pygame.draw.rect(screen, (60, 65, 75), (self.box_x, self.box_y, self.box_width, self.box_height), width=3, border_radius=15)
+
+        # Draw Black Display Screen
+        # If error_timer is active, give the screen a red warning tint!
+        if self.error_timer > 0:
+            screen_color = (60, 15, 15) if self.error_timer > 0 else (10, 12, 15)
+            pygame.draw.rect(screen, screen_color, self.screen_rect, border_radius=8)
+            pygame.draw.rect(screen, (80, 85, 95), self.screen_rect, width=2, border_radius=8)
+
+        # Render the 4 Digits / Xs on the Display Screen
+        self._draw_screen_text(screen)
+
+        # Draw Your Custom Calculator Buttons
+        for btn in self.buttons:
+            btn.draw(screen)
+
+    def _draw_screen_text(self, screen):
+        # Construct a 4-slot display array
+        display_slots = []
+        for i in range(4):
+            if i < len(self.current_input):
+                display_slots.append(("-", (0, 255, 150))) # Bright cyan/green for entered code
+            else:
+                display_slots.append(("X", (70, 75, 85))) # Dim gray for un-entered Xs
+
+        # Draw each slot evenly spaced across the black screen
+        slot_width = self.screen_rect.width // 4
+        for idx, (text_str, color) in enumerate(display_slots):
+            # Override color to red if error flash is active
+            if self.error_timer > 0:
+                color = (255, 80, 80)
+                
+            text_surf = self.font.render(text_str, True, color)
+            text_rect = text_surf.get_rect(center=(
+                self.screen_rect.left + (idx * slot_width) + (slot_width // 2),
+                self.screen_rect.centery
+            ))
+            screen.blit(text_surf, text_rect)
 
 class AiChatUI:
     def __init__(self, on_send=None, on_close=None):

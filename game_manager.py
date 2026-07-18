@@ -30,6 +30,7 @@ class GameManager:
         self.wire_puzzle_1 = WirePuzzleUI(self.audio_system, 4, self.on_wires_puzzle_1_solve, self.close_puzzle)
         self.wire_puzzle_2 = WirePuzzleUI(self.audio_system, 8, self.on_wires_puzzle_2_solve, self.close_puzzle)
         self.vault_puzzle = VaultPuzzleUI(self.audio_system, ("V", "II", "III", "IV"), self.on_vault_puzzle_solve, self.close_puzzle)
+        self.storage_puzzle = StoragePuzzleUI(self.audio_system, ("IV", "I", "III", "II"), self.on_storage_puzzle_solve, self.close_puzzle)
         self.ai_chat_ui = AiChatUI(self.on_send, self.close_ai_chat)
         
         self.audio_system.change_song_to("25. Dark Factory")
@@ -85,6 +86,11 @@ class GameManager:
         self.level.inventory.append("batteries")
         self.level.status["vault_open"] = True
         self.current_state = "GAMEPLAY"
+
+    def on_storage_puzzle_solve(self):
+        self.level.inventory.append("wires")
+        self.level.status["front_storage_open"] = True
+        self.current_state = "GAMEPLAY"
     
     def on_send(self, player_message):
         return ai_system.talk_to_ai(player_message)
@@ -107,6 +113,8 @@ class GameManager:
             self.wire_puzzle_2.handle_event(event)
         elif self.current_state == "VAULT":
             self.vault_puzzle.handle_event(event)
+        elif self.current_state == "STORAGE":
+            self.storage_puzzle.handle_event(event)
         elif self.current_state == "AI_CHAT":
             self.ai_chat_ui.handle_event(event)
 
@@ -123,6 +131,8 @@ class GameManager:
             self.wire_puzzle_2.update()
         elif self.current_state == "VAULT":
             self.vault_puzzle.update()
+        elif self.current_state == "STORAGE":
+            self.storage_puzzle.update()
         elif self.current_state == "AI_CHAT":
             self.ai_chat_ui.update()
         
@@ -160,5 +170,7 @@ class GameManager:
             self.wire_puzzle_2.draw(screen)
         elif self.current_state == "VAULT":
             self.vault_puzzle.draw(screen)
+        elif self.current_state == "STORAGE":
+            self.storage_puzzle.draw(screen)
         elif self.current_state == "AI_CHAT":
             self.ai_chat_ui.draw(screen)

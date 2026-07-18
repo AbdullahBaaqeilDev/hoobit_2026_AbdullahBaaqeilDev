@@ -193,10 +193,7 @@ class Level:
                     self.manager.open_ai_chat()
             case "front_storage_action":
                 if not self.status["front_storage_open"]:
-                    self.status["front_storage_open"] = True
-                    self.inventory.append("wires")
-                else:
-                    self.create_message("Already Looted")
+                    self.manager.open_puzzle("STORAGE")
             case "control_panal_1_action":
                 # TODO: make it end the game when the ai is persuaded
                 pass
