@@ -3,6 +3,7 @@ import asyncio
 
 
 pygame.init()
+pygame.mixer.pre_init(44100, -16, 2, 512)
 pygame.mixer.init()
 screen = pygame.display.set_mode((640, 360))
 pygame.display.set_caption("Spacecraft Puzzle")

@@ -49,8 +49,6 @@ class GameManager:
         )
         self.ai_chat_ui = AiChatUI(self.on_send, self.close_ai_chat)
 
-        self.audio_system.change_song_to("25. Dark Factory")
-
         # Track what the AI said last so we know when a NEW response arrives
         self.last_known_text = ai_system.ai_data["text"]
         self.waiting_for_ai = False
@@ -157,6 +155,8 @@ class GameManager:
     def handle_events(self, event):
         if self.current_state == "MENU":
             self.main_menu_ui.handle_event(event)
+            if event.type == pygame.MOUSEBUTTONUP:
+                self.audio_system.change_song_to("25. Dark Factory")
         elif self.current_state == "GAMEPLAY":
             self.level.handle_event(event)
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
