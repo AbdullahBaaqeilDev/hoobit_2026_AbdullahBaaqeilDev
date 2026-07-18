@@ -1,72 +1,306 @@
+import time
+from timer import Timer
 from player import Player
-from clickable_object import Clickable
-from obstacle import Obstacle
 from level_data import *
-from random import choice
+from ui import Message
+from random import choice, randrange
 
 
 class Level:
-    def __init__(self):
-        self.room = "front"
+    def __init__(self, manager):
+        self.manager = manager
+        
+        self.room_name = "front"
         self.rooms_data = {
-            "front": FRONT_ROOM_DATA,
-            "back": BACK_ROOM_DATA,
+            "front": FRONT_ROOM_DATA.copy(),
+            "back": BACK_ROOM_DATA.copy(),
         }
-        self.obstacles = []
-        self.clickables = []
-        self.transition_area = []
-        self.images = []
+        self.timers = {
+            "sun_crash": Timer(self.sun_crash, 60),
+            "footsteps_cooldown": Timer(self.check_footsteps_cooldown, 0.5, True)
+        }
+        self.start_time = 0
         self.player = Player()
-        self.player_spawn = Vector2(0, 0)
         self.audio_system = None
-        self.back_opened = False
-        self.reload_data()
+        self.player.rect.center = self.room.player_spawn
+        self.inventory = [
+            "note"
+        ]
+        self.status = {
+            "vault_open": False,
+            "batteries_on": False,
+            "comp_1_on": False,
+            "comp_2_on": False,
+            "comp_3_on": False,
+            "comp_4_on": False,
+            "ai_on": False,
+            "back_open": 1,
+            "entered_back": False,
+            "trash_can_open": False,
+            "front_storage_open": False,
+            "back_storage_open": False,
+            "higher_engine_fixed": False,
+            "middle_engine_fixed": False,
+            "lower_engine_fixed": False,
+            "ai_persuaded": False
+        }
+        self.messages = {}
+
+    @property
+    def room(self):
+        return self.rooms_data[self.room_name]
+
+    def reset_data(self):
+        self.rooms_data = {
+            "front": FRONT_ROOM_DATA.copy(),
+            "back": BACK_ROOM_DATA.copy(),
+        }
 
     def start(self):
+        self.start_time = time.time()
         self.audio_system.change_song_to("JDSherbert - Ambiences Music Pack - Frost Mountain Aura")
 
-    def load_level_data(self, level_data):
-        self.obstacles = level_data.obstacles
-        self.clickables = level_data.clickables
-        self.images = level_data.images
-        self.transition_area = level_data.transition_area
-        self.player_spawn = level_data.player_spawn
+    def create_timer(self, name, callback, delay_s, periodic = False):
+        self.timers[name] = Timer(callback, delay_s, periodic)
 
-    def reload_data(self):
-        self.load_level_data(self.rooms_data[self.room])
-        self.player.rect.center = self.player_spawn
-    
+    def del_timer(self, name):
+        del self.timers[name]
+
     def go_to_room(self, room):
         if room == "back":
-            self.audio_system.play_sfx("scary_air_sound")
-            self.back_opened = True
-        self.room = room
-        self.reload_data()
+            if self.status["back_open"]:
+                if not self.status["entered_back"]:
+                    self.audio_system.play_sfx("scary_air_sound")
+                    self.status["entered_back"] = True
+                self.audio_system.change_song_to("back_ambience")
+            else:
+                self.audio_system.play_sfx("hit")
+                self.player.rect.center = self.room.player_spawn
+                return
+        if room == "front":
+            self.audio_system.change_song_to("18. The Old Magician")
+        self.room_name = room
         self.audio_system.play_sfx(f"electric-door-open_{choice((0, 1, 2))}")
+        self.player.rect.center = self.room.player_spawn
 
-    def handle_event(self):
-        pass
+    def sun_crash(self):
+        print("crashed the sun")
+
+    def create_message(self, text, age, name = None):
+        while not name or name in self.messages.keys():
+            name = str(randrange(0, 1_000_000_000))
+
+        self.messages[name] = Message(
+            text,
+            pygame.display.get_window_size()[0],
+            age,
+            center_image_path = "assets/images/gui/message_center.png",
+        )
+
+    def handle_event(self, event):
+        for clickable in self.room.clickables:
+            if clickable.handle_event(event, self.on_clickable_interacted):
+                self.audio_system.play_sfx(f"bubble_click_{choice((1, 2, 3))}")
 
     def handle_transition(self):
-        if self.transition_area.check(self.player) and not self.transition_area.disabled:
-            self.go_to_room(self.transition_area.go_to)
+        if self.room.transition_area.check(self.player) and not self.room.transition_area.disabled:
+            self.go_to_room(self.room.transition_area.target)
+
+    def on_clickable_interacted(self, action_id):
+        def num_comp_on():
+            num = 1
+            for i in range(1, 5):
+                if self.status[f"comp_{i}_on"]: num += 1
+            return num
+        
+        def turn_on_ai():
+            if self.room_name == "front":
+                self.audio_system.change_song_to("18. The Old Magician")
+            else:
+                self.audio_system.change_song_to("back_ambience")
+            self.audio_system.set_song_volume(0.5)
+            self.audio_system.play_sfx("recharge")
+            self.status["ai_on"] = True
+
+        match action_id:
+            case "vault_action":
+                # TODO: make a puzzle appear. and add if solved to the condition
+                if not self.status["vault_open"]:
+                    self.audio_system.play_sfx("unlock_notification")
+                    self.status["vault_open"] = True
+                    self.inventory.append("batteries")
+            case "batteries_action": 
+                if "batteries" in self.inventory and not self.status["batteries_on"]:
+                    self.audio_system.play_sfx("power_on_sfx")
+                    self.status["batteries_on"] = True
+                    self.inventory.remove("batteries")
+            case "comp_1_action":
+                if self.status["batteries_on"] and not self.status["comp_1_on"]:
+                    self.audio_system.play_sfx(f"comp_{num_comp_on()}_on_sfx")
+                    self.status["comp_1_on"] = True
+            case "comp_2_action":
+                if self.status["batteries_on"] and not self.status["comp_2_on"] and self.status["comp_1_on"]:
+                    self.audio_system.play_sfx(f"comp_{num_comp_on()}_on_sfx")
+                    self.status["comp_2_on"] = True
+            case "comp_3_action":
+                if self.status["batteries_on"] and not self.status["comp_3_on"] and self.status["comp_2_on"]:
+                    self.audio_system.play_sfx(f"comp_{num_comp_on()}_on_sfx")
+                    self.status["comp_3_on"] = True
+            case "comp_4_action":
+                if self.status["batteries_on"] and not self.status["comp_4_on"] and self.status["comp_3_on"]:
+                    self.audio_system.play_sfx(f"comp_{num_comp_on()}_on_sfx")
+                    self.status["comp_4_on"] = True
+            case "ai_action" : 
+                if self.status["batteries_on"] and not self.status["ai_on"] and self.status["comp_4_on"]:
+                    # TODO: make an ai button appear
+                    self.audio_system.play_sfx("ai_on_sfx")
+                    self.audio_system.set_song_volume(0.0)
+                    self.create_timer(
+                        "second_ai_sfx",
+                        turn_on_ai,
+                        3)
+            case "front_storage_action":
+                # TODO: make a puzzle appear. and add if solved to the condition
+                if not self.status["front_storage_open"]:
+                    self.status["front_storage_open"] = True
+                    self.inventory.append("wires")
+                else:
+                    # TODO: make a messsage show up
+                    print("empty")
+            case "control_panal_1_action":
+                # TODO: make it end the game when the ai is persuaded
+                pass
+            case "control_panal_2_action":
+                # TODO: make it end the game when the ai is persuaded
+                pass
+            case "electricity_vault_action":
+                # TODO: make the ai make a comment store that comment and replay it later
+                pass
+            case "oxygen_vault_action":
+                # TODO: make the ai make a comment store that comment and replay it later
+                pass
+            case "trash_can_action":
+                if not self.status["trash_can_open"]:
+                    self.status["trash_can_open"] = True
+                    self.inventory.append("heat_chamber")
+                    self.inventory.append("dirty_note")
+                else:
+                    # TODO: make a messsage show up
+                    print("empty")
+            case "engine_fire_higher_action":
+                # TODO: make a messsage show up
+                print("How did your hands reah there?!")
+            case "engine_fire_lower_action":
+                # TODO: make the ai make a comment store that comment and replay it later
+                print("Ouch!! it's hot")
+            case "back_storage_action":
+                # TODO: make a puzzle appear. and add if solved to the condition
+                if not self.status["back_storage_open"]:
+                    self.status["back_storage_open"] = True
+                    self.inventory.append("wires")
+                else:
+                    # TODO: make a messsage show up
+                    print("empty")
+            case "electricity_panal_action":
+                # TODO: make the ai make a comment store that comment and replay it later
+                pass
+            case "vent_action":
+                # TODO: make the ai make a comment store that comment and replay it later
+                print("Good thing the ventilation system didn't break")
+            case "higher_engine_action": 
+                if "wires" in self.inventory and not self.status["higher_engine_fixed"]:
+                    self.inventory.remove("wires")
+                    self.status["higher_engine_fixed"] = True
+            case "middle_engine_action":
+                if "heat_chamber" in self.inventory and not self.status["middle_engine_fixed"]:
+                    self.inventory.remove("heat_chamber")
+                    self.status["middle_engine_fixed"] = True
+                    self.audio_system.play_sfx("engine_connected")
+            case "lower_engine_action": 
+                if "wires" in self.inventory and not self.status["lower_engine_fixed"]:
+                    self.inventory.remove("wires")
+                    self.status["lower_engine_fixed"] = True
+
+    def get_correct_room_image(self):
+        image_name = "start"
+        
+        if self.room_name == "front":
+            if self.status["vault_open"]:
+                image_name = "vault_open"
+            
+            if self.status["batteries_on"]:
+                image_name = "batteries_on"
+            
+            if self.status["comp_1_on"]:
+                image_name = "comp_1_on"
+            
+            if self.status["comp_2_on"]:
+                image_name = "comp_2_on"
+            
+            if self.status["comp_3_on"]:
+                image_name = "comp_3_on"
+            
+            if self.status["comp_4_on"]:
+                image_name = "comp_4_on"
+            
+            if self.status["ai_on"]:
+                image_name = "ai_on"
+            
+            if self.status["front_storage_open"]:
+                image_name = "end"
+        elif self.room_name == "back":
+            if self.status["trash_can_open"]:
+                image_name = "trash_can_open"
+            
+            if self.status["middle_engine_fixed"]:
+                image_name = "middle_engine_fixed"
+            
+            if self.status["lower_engine_fixed"] and not self.status["higher_engine_fixed"] and not self.status["back_storage_open"]:
+                image_name = "lower_engine_fixed"
+            
+            if self.status["higher_engine_fixed"] and not self.status["lower_engine_fixed"] and not self.status["back_storage_open"]:
+                image_name = "higher_engine_fixed"
+            
+            if not self.status["higher_engine_fixed"] and not self.status["lower_engine_fixed"] and self.status["back_storage_open"]:
+                image_name = "back_storage_opened"
+            
+            if self.status["lower_engine_fixed"] and self.status["back_storage_open"]:
+                image_name = "back_storage_opened_lower_engine_fixed"
+            
+            if self.status["higher_engine_fixed"] and self.status["back_storage_open"]:
+                image_name = "back_storage_opened_higher_engine_fixed"
+            
+            if self.status["higher_engine_fixed"] and self.status["lower_engine_fixed"] and self.status["back_storage_open"]:
+                image_name = "end"
+        
+        return self.room.images[image_name]
+
+    def update_timers(self):
+        expired_timers = []
+        for name, timer in self.timers.items():
+            timer.update()
+            if timer.ran and not timer.periodic:
+                expired_timers.append(name)
+        for name in expired_timers:
+            self.del_timer(name)
+
+    def check_footsteps_cooldown(self):
+        if "walk" in self.player.status:
+            self.audio_system.play_sfx("footsteps")
 
     def update(self):
+        self.update_timers()
         self.handle_transition()
-        self.player.update(self.obstacles)
-        for clickable in self.clickables:
-            if clickable.update():
-                self.audio_system.play_sfx("bubble_click")
-        for obstacle in self.obstacles:
+        self.player.update(self.room.obstacles)
+        for obstacle in self.room.obstacles:
             obstacle.update()
+        for message in self.messages.values():
+            message.update()
 
-    def draw(self):
-        for image in self.images:
-            image.draw()
-        for clickable in self.clickables:
-            # clickable.draw()
-            clickable.draw_cursor()
-        # self.transition_area.draw()
-        # for obstacle in self.obstacles:
-        #     obstacle.draw()
-        self.player.draw()
+    def draw(self, screen):
+        self.get_correct_room_image().draw(screen)
+        for clickable in self.room.clickables:
+            clickable.draw_cursor(screen)
+        self.player.draw(screen)
+        for message in self.messages.values():
+            message.draw(screen)

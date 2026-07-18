@@ -11,7 +11,6 @@ from game_manager import GameManager
 from debug import debug
 
 async def main():
-
     running = True
     clock = pygame.time.Clock()
     game = GameManager()
@@ -27,7 +26,7 @@ async def main():
                 running = False
                     
             if event.type == pygame.MOUSEBUTTONDOWN:
-                start_x, start_y = event.pos                
+                start_x, start_y = event.pos
             if event.type == pygame.MOUSEBUTTONUP:
                 end_x, end_y = event.pos
                 print(f"{start_x}, {start_y}, {end_x - start_x}, {end_y - start_y}")

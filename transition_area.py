@@ -8,7 +8,7 @@ class TransitionArea(Entity):
         self.image = pygame.Surface((w, h))
         self.image.fill((0, 255, 255))
         self.rect = pygame.Rect(x, y, w, h)
-        self.go_to = go_to
+        self.target = go_to
         self.disabled = False
     
     def check(self, player):

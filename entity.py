@@ -4,7 +4,6 @@ import pygame
 
 class Entity:
     def __init__(self, x = 0, y = 0, image = None):
-        self.screen = pygame.display.get_surface()
         self.image = image
         self.rect = pygame.Rect(x, y, 0, 0)
         self.direction = Vector2()
@@ -37,10 +36,10 @@ class Entity:
                     if self.direction.y < 0: # moving up
                         self.rect.top = sprite.rect.bottom
     
-    def draw(self):
+    def draw(self, screen):
         if not self.visible:
             return
-        self.screen.blit(self.image, self.rect)
+        screen.blit(self.image, self.rect)
 
     def update(self):
         pass

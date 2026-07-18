@@ -16,7 +16,7 @@ ai_data = {
 is_thinking = False
 
 _api_key = os.getenv("GROQ_API_KEY", "")
-_client = AsyncGroq(api_key=_api_key)
+_client = AsyncGroq(api_key = _api_key)
 
 
 async def _fetch_groq_data(prompt: str):
@@ -44,10 +44,10 @@ async def _fetch_groq_data(prompt: str):
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.8,
-            max_tokens=200,
+            temperature = 0.8,
+            max_tokens = 200,
             # This constraint guarantees valid JSON syntax is returned
-            response_format={"type": "json_object"} 
+            response_format = {"type": "json_object"} 
         )
         
         raw_json_string = completion.choices[0].message.content

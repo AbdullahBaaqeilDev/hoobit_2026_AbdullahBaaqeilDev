@@ -1,67 +1,94 @@
-
-import time
+from sys import exit
 from level import Level
 from ui import *
 from audio_system import AudioSystem
 from star_background import StarBackground
-from debug import debug
 from settings import *
 
 
 class GameManager:
     def __init__(self):
         self.current_state = "MENU"
-        self.level = Level()
-        self.current_state = "MENU"
 
-        self.start_time = time.time()
         self.star_background = StarBackground()
-        audio_system = AudioSystem()
-        level = Level()
-        level.audio_system = audio_system
-        self.main_menu_ui = MainMenuUI(lambda:0, lambda:0, lambda:0)
+        self.audio_system = AudioSystem()
+        self.level = Level(self)
+        self.level.audio_system = self.audio_system
 
+        self.main_menu_ui = MainMenuUI(self.start_game, self.open_settings, self.quit_game)
+        self.end_ui = EndUI(lambda:0, lambda:0)
+        self.wire_puzzle_1 = WirePuzzleUI(4, self.on_wires_puzzle_solve)
+        self.wire_puzzle_2 = WirePuzzleUI(8, self.on_wires_puzzle_solve)
+        self.vault_puzzle = VaultPuzzleUI(self.audio_system, ("V", "II", "III", "IV"), self.on_vault_puzzle_solve)
         
-        # Game state variables
-        user_input_text = "Who are you?"
-        ai_response_text = "Press ENTER to send the message to Groq."
-        is_loading = False
+        self.audio_system.change_song_to("25. Dark Factory")
+        self.current_state = "WIRES_1"
 
-        # Define UI buttons, passing internal methods as the action parameter!
-        # self.play_button = Button(300, 250, 200, 50, "PLAY GAME", self.start_game)
-        # self.repair_button = Button(300, 320, 200, 50, "REPAIR SHIP", self.repair_ship)
-
-    # --- BUTTON ACTIONS (Callbacks) ---
     def start_game(self):
         self.current_state = "GAMEPLAY"
+        self.level.start()
+        self.level.create_message("wow", 2)
 
-    def repair_ship(self):
-        # The UI safely modifies the level data directly through the manager context!
-        self.level.ship_health += 25
-        print(f"Ship repaired! Health is now: {self.level.ship_health}")
+    def open_menu(self):
+        self.current_state = "MENU"
+    
+    def open_settings(self):
+        self.current_state = "SETTINGS"
+    
+    def quit_game(self):
+        pygame.quit()
+        exit()
 
-    # --- SYSTEM ROUTERS ---
+    def on_wires_puzzle_solve(self):
+        self.current_state = "GAMEPLAY"
+
+    def on_vault_puzzle_solve(self):
+        self.current_state = "GAMEPLAY"
+
     def handle_events(self, event):
         if self.current_state == "MENU":
-            # self.play_button.handle_event(event)
-            # self.repair_button.handle_event(event)
-            pass
+            self.main_menu_ui.handle_event(event)
         elif self.current_state == "GAMEPLAY":
-            # If escape is pressed, return to menu
+            self.level.handle_event(event)
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 self.current_state = "MENU"
+        elif self.current_state == "END":
+            self.end_ui.handle_event(event)
+        elif self.current_state == "WIRES_1":
+            self.wire_puzzle_1.handle_event(event)
+        elif self.current_state == "WIRES_2":
+            self.wire_puzzle_2.handle_event(event)
+        elif self.current_state == "VAULT":
+            self.vault_puzzle.handle_event(event)
+
 
     def update(self):
-        if self.current_state == "GAMEPLAY":
+        if self.current_state == "MENU":
+            self.main_menu_ui.update()
+        elif self.current_state == "GAMEPLAY":
             self.level.update()
+        elif self.current_state == "END":
+            self.end_ui.update()
+        elif self.current_state == "WIRES_1":
+            self.wire_puzzle_1.update()
+        elif self.current_state == "WIRES_2":
+            self.wire_puzzle_2.update()
+        elif self.current_state == "VAULT":
+            self.vault_puzzle.update()
 
     def draw(self, screen):
         screen.fill((0, 0, 0))
         self.star_background.draw(screen)
 
         if self.current_state == "MENU":
-            # self.play_button.draw(screen)
-            # self.repair_button.draw(screen)
-            pass
+            self.main_menu_ui.draw(screen)
         elif self.current_state == "GAMEPLAY":
             self.level.draw(screen)
+        elif self.current_state == "END":
+            self.end_ui.draw(screen)
+        elif self.current_state == "WIRES_1":
+            self.wire_puzzle_1.draw(screen)
+        elif self.current_state == "WIRES_2":
+            self.wire_puzzle_2.draw(screen)
+        elif self.current_state == "VAULT":
+            self.vault_puzzle.draw(screen)

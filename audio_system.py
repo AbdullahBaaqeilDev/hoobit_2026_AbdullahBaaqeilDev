@@ -12,6 +12,7 @@ class AudioSystem:
             "music": {} 
         }
         self.load_audio()
+        pygame.mixer.music.set_volume(0.5)
 
     def load_audio(self):
         sfx_dir = Path(self.sfx_path)
@@ -38,6 +39,9 @@ class AudioSystem:
                 print(f"Error playing song {song_name}: {e}")
         else:
             print(f"The song '{song_name}' not found in library")
+        
+    def set_song_volume(self, level):
+        pygame.mixer.music.set_volume(level)
 
     def play_sfx(self, sfx_name):
         if sfx_name in self.audio_lib["sfx"]:

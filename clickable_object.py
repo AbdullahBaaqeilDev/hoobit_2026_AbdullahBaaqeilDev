@@ -8,11 +8,10 @@ class Clickable(Entity):
     temp_hover_surf = pygame.Surface((8, 8), pygame.SRCALPHA).convert_alpha()
     temp_hover_surf.set_alpha(128)
 
-    def __init__(self, x = 0, y = 0, w = 0, h = 0, image = None):
+    def __init__(self, action_id, x, y, w, h):
         super().__init__(x, y)
-        self.image = pygame.Surface((w, h))
-        self.image.fill((0, 255, 0))
-        self.rect = self.image.get_rect(topleft = (x, y))
+        self.action_id = action_id
+        self.rect = pygame.Rect(x, y, w, h)
         self.clicked = False
         self.disabled = False
 
@@ -20,29 +19,26 @@ class Clickable(Entity):
         self.clicked = True
         print(self, "was clicked")
 
-    def input(self):
-        mouse_l = pygame.mouse.get_pressed()[0]
-        mouse_pos = pygame.mouse.get_pos()
-
-        if self.rect.collidepoint(mouse_pos):
-            if mouse_l and not self.clicked:
-                self.click()
-                return True
+    def handle_event(self, event, action_handler):
+        if event.type != pygame.MOUSEBUTTONUP:
+            return
         
-        if not mouse_l:
-            self.clicked = False
+        if self.rect.collidepoint(event.pos):
+            self.click()
+            action_handler(self.action_id)
+            return True
 
     def update(self):
-        return self.input()
+        pass
 
-    def draw(self):
+    def draw(self, screen):
         if not self.visible:
             return
-        self.screen.blit(self.image, self.rect)
-        pygame.draw.rect(self.screen, (0, 255, 0), self.rect)
+        # pygame.draw.rect(screen, (0, 255, 0), self.rect)
+        screen.blit(pygame.font.Font(None, 25).render(self.action_id[:min(len(self.action_id), 10)], 0, "white"), self.rect.center)
     
-    def draw_cursor(self):
+    def draw_cursor(self, screen):
         mouse_pos = pygame.mouse.get_pos()
         if self.rect.collidepoint(mouse_pos):
             pygame.draw.circle(self.temp_hover_surf, (255, 0, 0), (4, 4), 4)
-            self.screen.blit(self.temp_hover_surf, self.temp_hover_surf.get_rect(center = mouse_pos))
+            screen.blit(self.temp_hover_surf, self.temp_hover_surf.get_rect(center = mouse_pos))
