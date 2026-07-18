@@ -86,7 +86,7 @@ class Level:
         self.player.rect.center = self.room.player_spawn
 
     def sun_crash(self):
-        print("crashed the sun")
+        self.manager.trigger_lose()
 
     def create_message(self, text, age="auto", name=None, delay_s=0):
         while not name or name in self.messages.keys():
@@ -335,6 +335,13 @@ class Level:
         image_name = image_name[:-1]
 
         return self.room.images[image_name]
+    
+    def ready_to_end(self):
+        return \
+            self.status["ai_on"] and\
+            self.status["higher_engine_fixed"] and\
+            self.status["middle_engine_fixed"] and\
+            self.status["lower_engine_fixed"]
 
     def update_timers(self):
         expired_timers = []
@@ -349,19 +356,25 @@ class Level:
         if "walk" in self.player.status:
             self.audio_system.play_sfx("footsteps")
 
+    def update_messages(self):
+        for message in self.messages.values():
+            message.update()
+
+    def draw_messages(self, screen):
+        for message in self.messages.values():
+            message.draw(screen)
+
     def update(self):
         self.update_timers()
         self.handle_transition()
         self.player.update(self.room.obstacles)
         for obstacle in self.room.obstacles:
             obstacle.update()
-        for message in self.messages.values():
-            message.update()
+        self.update_messages()
 
     def draw(self, screen):
         self.get_correct_room_image().draw(screen)
         for clickable in self.room.clickables:
             clickable.draw_cursor(screen)
         self.player.draw(screen)
-        for message in self.messages.values():
-            message.draw(screen)
+        self.draw_messages(screen)

@@ -54,6 +54,8 @@ class GameManager:
         # Track what the AI said last so we know when a NEW response arrives
         self.last_known_text = ai_system.ai_data["text"]
         self.waiting_for_ai = False
+        self.total_satisfaction = 0.5
+        # self.trigger_ending()
 
     def start_game(self):
         self.current_state = "GAMEPLAY"
@@ -82,7 +84,7 @@ class GameManager:
         self.audio_system.play_sfx("classic_alarm")
 
     def restart(self):
-        pass
+        self.quit_game()
 
     def open_menu(self):
         self.current_state = "MENU"
@@ -134,7 +136,23 @@ class GameManager:
         return ai_system.talk_to_ai(player_message)
 
     def handle_ai_response(self, new_data):
-        pass
+        self.total_satisfaction += new_data["satisfaction_change"]
+        if new_data["help_human"] == True:
+            self.trigger_ending()
+    
+    def trigger_ending(self):
+        self.audio_system.change_song_to("25. Dark Factory")
+        self.current_state = "END"
+        if self.total_satisfaction < 1:
+            self.end_ui.set_ending("MARS")
+            self.level.create_message("GET SENT          ")
+        else:
+            self.end_ui.set_ending("EARTH")
+
+    def trigger_lose(self):
+        self.audio_system.change_song_to("25. Dark Factory")
+        self.current_state = "END"
+        self.end_ui.set_ending("SUN")
 
     def handle_events(self, event):
         if self.current_state == "MENU":
@@ -163,6 +181,7 @@ class GameManager:
             self.level.update()
         elif self.current_state == "END":
             self.end_ui.update()
+            self.level.update_messages()
         elif self.current_state == "WIRES_1":
             self.wire_puzzle_1.update()
         elif self.current_state == "WIRES_2":
@@ -190,6 +209,10 @@ class GameManager:
             self.ai_chat_ui.add_message("AI", new_reply)
 
             self.handle_ai_response(ai_system.ai_data)
+        
+        # Check if game ends
+        if self.level.ready_to_end() and ai_system.ai_data["help_human"]:
+            self.trigger_ending()
 
     def draw(self, screen):
         screen.fill((0, 0, 0))
@@ -201,6 +224,7 @@ class GameManager:
             self.level.draw(screen)
         elif self.current_state == "END":
             self.end_ui.draw(screen)
+            self.level.draw_messages(screen)
         elif self.current_state == "WIRES_1":
             self.wire_puzzle_1.draw(screen)
         elif self.current_state == "WIRES_2":

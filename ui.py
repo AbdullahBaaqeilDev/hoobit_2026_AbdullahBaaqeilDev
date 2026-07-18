@@ -4,6 +4,8 @@ import re
 import time
 import math
 import random
+from pathlib import Path
+from entity import Entity
 
 
 class Text:
@@ -438,6 +440,9 @@ class MainMenuUI:
 
 
 class EndUI:
+    
+    endings_images_path = "assets/images/endings"
+    
     def __init__(self, on_restart, on_quit):
         self.title_text = Text(
             "THE END",
@@ -448,15 +453,31 @@ class EndUI:
             font_name="consolas",
         )
 
+        self.endings_images = {}
+
         self.restart_button = Button(
-            "assets/images/gui/restart_normal.png", x=320, y=150, action=on_restart
+            "assets/images/gui/restart_normal.png", x=120, y=300, action=on_restart
         )
 
         self.quit_button = Button(
-            "assets/images/gui/quit_normal.png", x=320, y=300, action=on_quit
+            "assets/images/gui/quit_normal.png", x=500, y=300, action=on_quit
         )
-
+        
+        self.background_image = None
         self.buttons = [self.restart_button, self.quit_button]
+        self.load_ending_images()
+
+    def load_ending_images(self):        
+        for image_path in Path(self.endings_images_path).glob("*.png"):
+            self.endings_images[Path(image_path).stem] = pygame.transform.scale2x(pygame.image.load(image_path))
+
+    def set_ending(self, ending):
+        if ending == "MARS":
+            self.background_image = self.endings_images["in_mars"]
+        elif ending == "EARTH":
+            self.background_image = self.endings_images["in_earth"]
+        else:
+            self.background_image = self.endings_images["in_sun"]
 
     def handle_event(self, event):
         for button in self.buttons:
@@ -467,6 +488,7 @@ class EndUI:
             button.update()
 
     def draw(self, screen):
+        screen.blit(self.background_image, (0, 0))
         self.title_text.draw(screen)
 
         for button in self.buttons:
@@ -504,7 +526,7 @@ class WirePuzzleUI:
         self.slot_size = (22, 22)
         self.node_radius = 6
         self.wire_thickness = 100 / num_wires
-        self.click_tolerance = 32
+        self.click_tolerance = 16
 
         # Load asset graphics safely
         try:
@@ -1201,6 +1223,8 @@ class AiChatUI:
             20, scr_h - 70 - self.history_height - 10, scr_w - 40, self.history_height
         )
 
+        self.number_of_massages = 0
+
         # Setup Font
         try:
             self.chat_font = pygame.font.SysFont("consolas", 18, bold=True)
@@ -1214,8 +1238,9 @@ class AiChatUI:
         message = self.input_entry.get_text().strip()
         if message:
             self.add_message("PLAYER", message)
+            self.number_of_massages += 1
             if self.on_send:
-                self.on_send(message)
+                self.on_send(f"({self.number_of_massages})" + message)
             self.input_entry.clear()
 
     def handle_event(self, event):
